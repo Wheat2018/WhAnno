@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WhAnno.PictureShow;
 
 namespace WhAnno
 {
@@ -18,9 +19,14 @@ namespace WhAnno
         public MainForm()
         {
             InitializeComponent();
-            TextPictureBox textPictureBox = new TextPictureBox(@"C:\Users\88033\Pictures\QQ图片202.png");
-            this.Controls.Add(textPictureBox);
-            textPictureBox.Height = 100;
+            AutoTextPicturePannel textPicturePannel = new AutoTextPicturePannel();
+            textPicturePannel.Dock = DockStyle.Right;
+            this.Controls.Add(textPicturePannel);
+            textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ图片202.png");
+            textPicturePannel.Add(@"C:\Users\88033\Pictures\car.gif");
+            textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
+            textPicturePannel.paintIndexFont = new Font(textPicturePannel.paintIndexFont.FontFamily, 15);
+            textPicturePannel.Width = 300;
         }
 
         private void MainForm_Load(object sender, EventArgs e)

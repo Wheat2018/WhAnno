@@ -12,8 +12,14 @@ namespace WhAnno
     class TextPictureBox: PictureBox
     {
         public string fileDir;
+
         public string fileName;
-        
+        public int index;
+
+        //Style
+        public Font paintFileNameFont;
+        public Font paintIndexFont;
+
         public TextPictureBox(string fileDir)
         {
             this.fileDir = fileDir;
@@ -22,6 +28,7 @@ namespace WhAnno
             this.Image = new Bitmap(fileDir);
             this.SizeMode = PictureBoxSizeMode.Zoom;
             this.BorderStyle = BorderStyle.FixedSingle;
+            this.paintFileNameFont = this.paintIndexFont = Font;
         }
         protected override void OnPaint(PaintEventArgs pe)
         {
@@ -29,7 +36,8 @@ namespace WhAnno
             float startX = 0;
             float startY = Height - size.Height;
             base.OnPaint(pe);
-            pe.Graphics.DrawString(fileName, Font, new SolidBrush(ForeColor), startX, startY);
+            pe.Graphics.DrawString(fileName, paintFileNameFont, new SolidBrush(ForeColor), startX, startY);
+            pe.Graphics.DrawString(index.ToString(), paintIndexFont, new SolidBrush(ForeColor), 0, 0);
         }
     }
 }

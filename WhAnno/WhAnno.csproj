@@ -52,7 +52,7 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="PictureShow\AutoPicturePannel.cs">
+    <Compile Include="PictureShow\AutoTextPicturePannel.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Program.cs" />
