@@ -40,9 +40,10 @@
             this.pictureBox3 = new System.Windows.Forms.PictureBox();
             this.pictureBox4 = new System.Windows.Forms.PictureBox();
             this.pictureBox5 = new System.Windows.Forms.PictureBox();
-            this.listBox1 = new System.Windows.Forms.ListBox();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripStatusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.panel1 = new System.Windows.Forms.Panel();
             this.menuStrip1.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -60,7 +61,7 @@
             this.文件ToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(800, 28);
+            this.menuStrip1.Size = new System.Drawing.Size(800, 30);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -104,9 +105,6 @@
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
             this.flowLayoutPanel1.Size = new System.Drawing.Size(355, 136);
             this.flowLayoutPanel1.TabIndex = 1;
-            this.flowLayoutPanel1.Enter += new System.EventHandler(this.flowLayoutPanel1_Enter);
-            this.flowLayoutPanel1.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.flowLayoutPanel1_PreviewKeyDown);
-            this.flowLayoutPanel1.Validated += new System.EventHandler(this.flowLayoutPanel1_Validated);
             // 
             // pictureBox1
             // 
@@ -151,59 +149,48 @@
             this.pictureBox5.TabIndex = 2;
             this.pictureBox5.TabStop = false;
             // 
-            // listBox1
-            // 
-            this.listBox1.FormattingEnabled = true;
-            this.listBox1.ItemHeight = 15;
-            this.listBox1.Items.AddRange(new object[] {
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7",
-            "8",
-            "9",
-            "10"});
-            this.listBox1.Location = new System.Drawing.Point(296, 275);
-            this.listBox1.Name = "listBox1";
-            this.listBox1.Size = new System.Drawing.Size(114, 109);
-            this.listBox1.TabIndex = 3;
-            this.listBox1.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.listBox1_KeyPress);
-            // 
             // statusStrip1
             // 
             this.statusStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripStatusLabel1});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 424);
+            this.toolStripStatusLabel1,
+            this.toolStripStatusLabel2});
+            this.statusStrip1.Location = new System.Drawing.Point(0, 428);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(800, 26);
+            this.statusStrip1.Size = new System.Drawing.Size(800, 22);
             this.statusStrip1.TabIndex = 4;
             this.statusStrip1.Text = "statusStrip1";
             // 
             // toolStripStatusLabel1
             // 
             this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-            this.toolStripStatusLabel1.Size = new System.Drawing.Size(167, 20);
-            this.toolStripStatusLabel1.Text = "toolStripStatusLabel1";
+            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 16);
+            // 
+            // toolStripStatusLabel2
+            // 
+            this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
+            this.toolStripStatusLabel2.Size = new System.Drawing.Size(0, 16);
+            // 
+            // panel1
+            // 
+            this.panel1.Location = new System.Drawing.Point(47, 339);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(101, 68);
+            this.panel1.TabIndex = 5;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.panel1);
             this.Controls.Add(this.statusStrip1);
-            this.Controls.Add(this.listBox1);
             this.Controls.Add(this.pictureBox5);
             this.Controls.Add(this.flowLayoutPanel1);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
             this.Text = "WhAnno";
-            this.Load += new System.EventHandler(this.MainForm_Load);
-            this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.MainForm_KeyPress);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.flowLayoutPanel1.ResumeLayout(false);
@@ -232,9 +219,10 @@
         private System.Windows.Forms.PictureBox pictureBox3;
         private System.Windows.Forms.PictureBox pictureBox4;
         private System.Windows.Forms.PictureBox pictureBox5;
-        private System.Windows.Forms.ListBox listBox1;
-        private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel2;
+        private System.Windows.Forms.StatusStrip statusStrip1;
+        private System.Windows.Forms.Panel panel1;
     }
 }
 
