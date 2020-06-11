@@ -26,7 +26,7 @@ namespace WhAnno
             textPicturePannel.Dock = DockStyle.Right;
             this.Controls.Add(textPicturePannel);
             textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ图片202.png");
-            textPicturePannel.Add(@"C:\Users\88033\Pictures\car.gif");
+            textPicturePannel.Add(@"C:\Users\88033\Pictures\无标题.png");
             textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
             textPicturePannel.paintIndexFont = new Font(textPicturePannel.paintIndexFont.FontFamily, 15);
             textPicturePannel.Width = 300;
@@ -43,6 +43,7 @@ namespace WhAnno
                     toolStripStatusLabel2.Text = data as string;
                     break;
                 default:
+                    toolStripStatusLabel3.Text = data as string;
                     break;
             }
         }

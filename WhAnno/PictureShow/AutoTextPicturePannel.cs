@@ -53,7 +53,7 @@ namespace WhAnno.PictureShow
             if (e is MouseEventArgs && (e as MouseEventArgs).Button != MouseButtons.Left) return;
 
             TextPictureBox nowFocusBox = sender as TextPictureBox;
-            if(focusBox != null)
+            if (focusBox != null)
             {
                 focusBox.BackColor = nowFocusBox.BackColor;
                 focusBox.BorderStyle = nowFocusBox.BorderStyle;
@@ -61,6 +61,7 @@ namespace WhAnno.PictureShow
             nowFocusBox.BackColor = SystemColors.ActiveCaption;
             nowFocusBox.BorderStyle = BorderStyle.Fixed3D;
             focusBox = nowFocusBox;
+            ScrollControlIntoView(focusBox);
             MessagePrint.PushMessage("status", "选中: " + focusBox.fileName);
         }
 
