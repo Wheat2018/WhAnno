@@ -30,12 +30,13 @@ namespace WhAnno
             this.BorderStyle = BorderStyle.FixedSingle;
             this.paintFileNameFont = this.paintIndexFont = Font;
         }
+
         protected override void OnPaint(PaintEventArgs pe)
         {
+            base.OnPaint(pe);
             SizeF size = pe.Graphics.MeasureString(fileName, Font);
             float startX = 0;
             float startY = Height - size.Height;
-            base.OnPaint(pe);
             pe.Graphics.DrawString(fileName, paintFileNameFont, new SolidBrush(ForeColor), startX, startY);
             pe.Graphics.DrawString(index.ToString(), paintIndexFont, new SolidBrush(ForeColor), 0, 0);
         }

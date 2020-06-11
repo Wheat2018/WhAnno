@@ -19,6 +19,8 @@ namespace WhAnno
         public MainForm()
         {
             InitializeComponent();
+            MessagePrint.solveMethods += PrintStatus;
+
             AutoTextPicturePannel textPicturePannel = new AutoTextPicturePannel();
             textPicturePannel.Dock = DockStyle.Right;
             this.Controls.Add(textPicturePannel);
@@ -27,6 +29,11 @@ namespace WhAnno
             textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
             textPicturePannel.paintIndexFont = new Font(textPicturePannel.paintIndexFont.FontFamily, 15);
             textPicturePannel.Width = 300;
+        }
+
+        private void PrintStatus(string describe, object data)
+        {
+            if(describe == "status") toolStripStatusLabel1.Text = data as string;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -50,5 +57,38 @@ namespace WhAnno
             Application.Exit();
         }
 
+        private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void MainForm_KeyPress(object sender, KeyPressEventArgs e)
+        {
+
+        }
+
+        private void flowLayoutPanel1_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        {
+            MessageBox.Show(sender.ToString() + e.ToString());
+
+        }
+
+        private void flowLayoutPanel1_Enter(object sender, EventArgs e)
+        {
+            MessageBox.Show(sender.ToString() + e.ToString());
+
+        }
+
+        private void flowLayoutPanel1_Validated(object sender, EventArgs e)
+        {
+            MessageBox.Show(sender.ToString() + e.ToString());
+
+        }
+
+        private void listBox1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            MessageBox.Show(sender.ToString() + e.ToString());
+
+        }
     }
 }
