@@ -58,7 +58,7 @@
     <Compile Include="PictureShow\ListPannel.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="PictureShow\AutoTextPicturePannel.cs">
+    <Compile Include="PictureShow\TextPictureListPannel.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Program.cs" />

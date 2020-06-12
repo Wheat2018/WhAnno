@@ -26,7 +26,7 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 上次选中项。
         /// </summary>
-        public ItemType PrevItem { get; private set; } = default;
+        public ItemType LastItem { get; private set; } = default;
 
         //Event
         /// <summary>
@@ -36,7 +36,7 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 添加项后触发事件
         /// </summary>
-        public event EventHandler ItemAdded;
+        public event EventHandler<ItemType> ItemAdded;
 
         /// <summary>
         /// 获取面板中指定索引的项
@@ -55,27 +55,29 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 默认构造函数
         /// </summary>
-        /// <param name="shareMouseEvent">指示ListPannel是否共享每个Item的鼠标事件</param>
+        /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
         public ListPannel(bool shareMouseEvent = true)
         {
+            AutoScroll = true;
+
             SelectedIndexChanged = new EventHandler((sender, e) => { });
-            ItemAdded = new EventHandler((sender, e) => { });
+            ItemAdded = new EventHandler<ItemType>((sender, item) => { });
 
             if (shareMouseEvent)
             {
-                ItemAdded += new EventHandler((sender, e) =>
+                ItemAdded += new EventHandler<ItemType>((sender, item) =>
                 {
-                    CurrentItem.MouseClick += (_sender, _e) => OnMouseClick(ParentMouse.Get(_sender, _e));
-                    CurrentItem.MouseDoubleClick += (_sender, _e) => OnMouseDoubleClick(ParentMouse.Get(_sender, _e));
-                    CurrentItem.MouseDown += (_sender, _e) => OnMouseDown(ParentMouse.Get(_sender, _e));
-                    CurrentItem.MouseMove += (_sender, _e) => OnMouseMove(ParentMouse.Get(_sender, _e));
-                    CurrentItem.MouseUp += (_sender, _e) => OnMouseUp(ParentMouse.Get(_sender, _e));
-                    CurrentItem.MouseWheel += (_sender, _e) => OnMouseWheel(ParentMouse.Get(_sender, _e));
-
-                    CurrentItem.MouseCaptureChanged += (_sender, _e) => OnMouseCaptureChanged(_e);
-                    CurrentItem.MouseEnter += (_sender, _e) => OnMouseEnter(_e);
-                    CurrentItem.MouseHover += (_sender, _e) => OnMouseHover(_e);
-                    CurrentItem.MouseLeave += (_sender, _e) => OnMouseLeave(_e);
+                    item.MouseClick += (_sender, _e) => OnMouseClick(ParentMouse.Get(_sender, _e));
+                    item.MouseDoubleClick += (_sender, _e) => OnMouseDoubleClick(ParentMouse.Get(_sender, _e));
+                    item.MouseDown += (_sender, _e) => OnMouseDown(ParentMouse.Get(_sender, _e));
+                    item.MouseMove += (_sender, _e) => OnMouseMove(ParentMouse.Get(_sender, _e));
+                    item.MouseUp += (_sender, _e) => OnMouseUp(ParentMouse.Get(_sender, _e));
+                    item.MouseWheel += (_sender, _e) => OnMouseWheel(ParentMouse.Get(_sender, _e));
+                    
+                    item.MouseCaptureChanged += (_sender, _e) => OnMouseCaptureChanged(_e);
+                    item.MouseEnter += (_sender, _e) => OnMouseEnter(_e);
+                    item.MouseHover += (_sender, _e) => OnMouseHover(_e);
+                    item.MouseLeave += (_sender, _e) => OnMouseLeave(_e);
                 });
             }
         }
@@ -90,12 +92,25 @@ namespace WhAnno.PictureShow
 
             items.Add(item);
             Controls.Add(item);
-            OnItemAdded(new EventArgs());
+            OnItemAdded(item);
+        }
+
+        public delegate void Apply(ItemType item);
+        /// <summary>
+        /// 对每个项应用操作
+        /// </summary>
+        /// <param name="applyFunc">操作</param>
+        public void ForEachItem(Apply applyFunc)
+        {
+            foreach (ItemType item in items)
+            {
+                applyFunc(item);
+            }
         }
 
         private void ChangeSelection(ItemType target)
         {
-            PrevItem = CurrentItem;
+            LastItem = CurrentItem;
             CurrentItem = target;
             OnSelectedIndexChanged(new EventArgs());
         }
@@ -116,23 +131,17 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 引发ListPannel.ItemAdded事件
         /// </summary>
-        /// <param name="e"></param>
-        protected virtual void OnItemAdded(EventArgs e)
+        /// <param name="item">添加的项</param>
+        protected virtual void OnItemAdded(ItemType item)
         {
-            CurrentItem.Click += Lambda.MouseLeft.Get((_sender, _e) => ChangeSelection(CurrentItem));
-            ItemAdded(this, e);
+            item.Click += Lambda.MouseLeft.Get((_sender, _e) => ChangeSelection(item));
+            ItemAdded(this, item);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
             Focus();
             base.OnMouseDown(e);
-        }
-
-        protected override void OnMouseMove(MouseEventArgs e)
-        {
-            MessagePrint.AddMessage("info", "鼠标: " + e.Location.ToString());
-            base.OnMouseMove(e);
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -153,7 +162,10 @@ namespace WhAnno.PictureShow
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
-        private readonly ArrayList items = new ArrayList();
+        /// <summary>
+        /// 所有项
+        /// </summary>
+        protected readonly ArrayList items = new ArrayList();
 
     }
 }
