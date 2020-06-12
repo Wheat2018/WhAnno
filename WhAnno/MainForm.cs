@@ -18,18 +18,18 @@ namespace WhAnno
 
         public MainForm()
         {
-            InitializeComponent();
             MessagePrint.solveMethods += PrintStatus;
-            this.flowLayoutPanel1.Focus();
 
             AutoTextPicturePannel textPicturePannel = new AutoTextPicturePannel();
             textPicturePannel.Dock = DockStyle.Right;
             this.Controls.Add(textPicturePannel);
             textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ图片202.png");
+            textPicturePannel.Add(@"C:\Users\88033\Pictures\car.gif");
             textPicturePannel.Add(@"C:\Users\88033\Pictures\无标题.png");
             textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
             textPicturePannel.paintIndexFont = new Font(textPicturePannel.paintIndexFont.FontFamily, 15);
             textPicturePannel.Width = 300;
+            InitializeComponent();
         }
 
         private void PrintStatus(string describe, object data)
@@ -61,8 +61,9 @@ namespace WhAnno
 
         private void 退出ToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            Application.Exit();
+            Close();
         }
+
 
     }
 }

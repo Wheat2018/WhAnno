@@ -56,12 +56,9 @@ namespace WhAnno
             while (true)
             {
                 if (messages.Count == 0) thread_suspend.WaitOne();
-                else
-                {
                     Message message;
                     if(messages.TryDequeue(out message))
                         solveMethods(message.describe, message.data);
-                }
             }
         }
     }

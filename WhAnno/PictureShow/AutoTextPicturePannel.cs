@@ -25,14 +25,14 @@ namespace WhAnno.PictureShow
         {
             this.AutoScroll = true;
             this.paintFileNameFont = this.paintIndexFont = Font;
-            this.MouseDown += PannelGetFocus;
         }
 
         public void Add(TextPictureBox textPic)
         {
             textPic.index = textPics.Count;
             textPic.Click += SelectIndexChanged;
-            textPic.MouseDown += PannelGetFocus;
+            textPic.MouseDown += (sender, e) => OnMouseDown(ParentMouse.Get(sender, e));
+            textPic.MouseMove += (sender, e) => OnMouseMove(ParentMouse.Get(sender, e));
 
             textPics.Add(textPic);
             Controls.Add(textPic);
@@ -41,11 +41,6 @@ namespace WhAnno.PictureShow
         public void Add(string picFileDir)
         {
             Add(new TextPictureBox(picFileDir));
-        }
-
-        private void PannelGetFocus(object sender, MouseEventArgs e)
-        {
-            this.Focus();
         }
 
         private void SelectIndexChanged(object sender, EventArgs e)
@@ -89,9 +84,37 @@ namespace WhAnno.PictureShow
             base.OnPaint(e);
         }
 
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            Focus();
+            base.OnMouseDown(e);
+        }
+
         protected override void OnMouseMove(MouseEventArgs e)
         {
             MessagePrint.PushMessage("info", "鼠标: " + e.Location.ToString());
+            bool sw_left = false, sw_right = false, sw_top = false, sw_bottom = false;
+            switch (Dock)
+            {
+                case DockStyle.Top:
+                    sw_bottom = true;
+                    break;
+                case DockStyle.Bottom:
+                    sw_top = true;
+                    break;
+                case DockStyle.Left:
+                    sw_right = true;
+                    break;
+                case DockStyle.Right:
+                    sw_left = true;
+                    break;
+                case DockStyle.Fill:
+                    break;
+                case DockStyle.None:
+                default:
+                    sw_left = sw_right = sw_top = sw_bottom = true;
+                    break;
+            }
             base.OnMouseMove(e);
         }
 
