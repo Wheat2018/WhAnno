@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WhAnno
+namespace WhAnno.PictureShow
 {
     class TextPictureBox: PictureBox
     {

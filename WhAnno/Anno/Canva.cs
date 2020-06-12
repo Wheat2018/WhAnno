@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 namespace WhAnno.Anno
 {
-    class Canva:Panel
+    class Canva : Panel
     {
         public PictureBox Pic { get; private set; } = new PictureBox();
 
