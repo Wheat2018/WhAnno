@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -13,24 +14,38 @@ namespace WhAnno.PictureShow
 {
     class AutoTextPicturePannel:FlowLayoutPanel
     {
-        public TextPictureBox focusBox = null;
+        //Properties
+        /// <summary>
+        /// 当前选中索引。
+        /// </summary>
+        public int Index { get => textPics.IndexOf(CurrentItem); }
+        /// <summary>
+        /// 当前选中项。
+        /// </summary>
+        public TextPictureBox CurrentItem { get; private set; } = null;
 
-        public ArrayList textPics = new ArrayList();
-
+        //Event
+        /// <summary>
+        /// 选中项发生更改时触发的带数据事件。
+        /// </summary>
+        public event EventHandler<TextPictureBox> SelectedIndexChanged = new EventHandler<TextPictureBox>((sender, box) => { });
+        
         //Style
         public Font paintFileNameFont;
         public Font paintIndexFont;
 
+        private readonly ArrayList textPics = new ArrayList();
         public AutoTextPicturePannel()
         {
             this.AutoScroll = true;
+            this.BorderStyle = BorderStyle.FixedSingle;
             this.paintFileNameFont = this.paintIndexFont = Font;
         }
 
         public void Add(TextPictureBox textPic)
         {
             textPic.index = textPics.Count;
-            textPic.Click += SelectIndexChanged;
+            textPic.Click += Lambda.MouseLeft.Get((sender, e) => ChangeIndex(textPic));
             textPic.MouseDown += (sender, e) => OnMouseDown(ParentMouse.Get(sender, e));
             textPic.MouseMove += (sender, e) => OnMouseMove(ParentMouse.Get(sender, e));
 
@@ -43,30 +58,28 @@ namespace WhAnno.PictureShow
             Add(new TextPictureBox(picFileDir));
         }
 
-        private void SelectIndexChanged(object sender, EventArgs e)
+        private void ChangeIndex(TextPictureBox target)
         {
-            if (e is MouseEventArgs && (e as MouseEventArgs).Button != MouseButtons.Left) return;
-
-            TextPictureBox nowFocusBox = sender as TextPictureBox;
-            if (focusBox != null)
+            if (CurrentItem != null)
             {
-                focusBox.BackColor = nowFocusBox.BackColor;
-                focusBox.BorderStyle = nowFocusBox.BorderStyle;
+                CurrentItem.BackColor = target.BackColor;
+                CurrentItem.BorderStyle = target.BorderStyle;
             }
-            nowFocusBox.BackColor = SystemColors.ActiveCaption;
-            nowFocusBox.BorderStyle = BorderStyle.Fixed3D;
-            focusBox = nowFocusBox;
-            ScrollControlIntoView(focusBox);
-            MessagePrint.PushMessage("status", "选中: " + focusBox.fileName);
+            target.BackColor = SystemColors.ActiveCaption;
+            target.BorderStyle = BorderStyle.Fixed3D;
+            CurrentItem = target;
+            ScrollControlIntoView(CurrentItem);
+            SelectedIndexChanged(this, CurrentItem);
+            MessagePrint.AddMessage("status", "选中: " + CurrentItem.fileName);
         }
 
         private void NextIndex()
         {
-            SelectIndexChanged(textPics[(textPics.IndexOf(focusBox) + 1) % textPics.Count], null);
+            ChangeIndex(textPics[(textPics.IndexOf(CurrentItem) + 1) % textPics.Count] as TextPictureBox);
         }
         private void PrevIndex()
         {
-            SelectIndexChanged(textPics[(textPics.Count + textPics.IndexOf(focusBox) - 1) % textPics.Count], null);
+            ChangeIndex(textPics[(textPics.Count + textPics.IndexOf(CurrentItem) - 1) % textPics.Count] as TextPictureBox);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -92,29 +105,7 @@ namespace WhAnno.PictureShow
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            MessagePrint.PushMessage("info", "鼠标: " + e.Location.ToString());
-            bool sw_left = false, sw_right = false, sw_top = false, sw_bottom = false;
-            switch (Dock)
-            {
-                case DockStyle.Top:
-                    sw_bottom = true;
-                    break;
-                case DockStyle.Bottom:
-                    sw_top = true;
-                    break;
-                case DockStyle.Left:
-                    sw_right = true;
-                    break;
-                case DockStyle.Right:
-                    sw_left = true;
-                    break;
-                case DockStyle.Fill:
-                    break;
-                case DockStyle.None:
-                default:
-                    sw_left = sw_right = sw_top = sw_bottom = true;
-                    break;
-            }
+            MessagePrint.AddMessage("info", "鼠标: " + e.Location.ToString());
             base.OnMouseMove(e);
         }
 

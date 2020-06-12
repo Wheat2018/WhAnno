@@ -22,17 +22,25 @@ namespace WhAnno
             MessagePrint.solveMethods += PrintStatus;
 
             AutoTextPicturePannel textPicturePannel = new AutoTextPicturePannel();
-            textPicturePannel.Dock = DockStyle.Right;
-            this.Controls.Add(textPicturePannel);
-            textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ图片202.png");
-            textPicturePannel.Add(@"C:\Users\88033\Pictures\car.gif");
-            textPicturePannel.Add(@"C:\Users\88033\Pictures\无标题.png");
-            textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
-            textPicturePannel.paintIndexFont = new Font(textPicturePannel.paintIndexFont.FontFamily, 15);
-            textPicturePannel.Width = 300;
             Canva canva = new Canva();
-            canva.Dock = DockStyle.Left;
+            this.Controls.Add(textPicturePannel);
             this.Controls.Add(canva);
+
+            {
+                textPicturePannel.Dock = DockStyle.Right;
+                textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ图片202.png");
+                //textPicturePannel.Add(@"C:\Users\88033\Pictures\car.gif");
+                textPicturePannel.Add(@"C:\Users\88033\Pictures\无标题.png");
+                textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
+                textPicturePannel.paintIndexFont = new Font(textPicturePannel.paintIndexFont.FontFamily, 15);
+                textPicturePannel.Width = 300;
+            }
+            {
+                canva.Dock = DockStyle.Left;
+                textPicturePannel.SelectedIndexChanged += (sender, data) => canva.SetImage(data.Image);
+                textPicturePannel.Move += (sender, e) => canva.Width = textPicturePannel.Location.X;
+            }
+
             InitializeComponent();
         }
 
@@ -67,7 +75,6 @@ namespace WhAnno
         {
             Close();
         }
-
 
     }
 }
