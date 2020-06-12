@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WhAnno.Anno;
 using WhAnno.PictureShow;
 
 namespace WhAnno
@@ -29,6 +30,9 @@ namespace WhAnno
             textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
             textPicturePannel.paintIndexFont = new Font(textPicturePannel.paintIndexFont.FontFamily, 15);
             textPicturePannel.Width = 300;
+            Canva canva = new Canva();
+            canva.Dock = DockStyle.Left;
+            this.Controls.Add(canva);
             InitializeComponent();
         }
 
