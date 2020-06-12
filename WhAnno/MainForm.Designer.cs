@@ -43,8 +43,8 @@
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
-            this.panel1 = new System.Windows.Forms.Panel();
             this.toolStripStatusLabel3 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.panel1 = new System.Windows.Forms.Panel();
             this.menuStrip1.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -79,19 +79,19 @@
             // 打开工作区ToolStripMenuItem
             // 
             this.打开工作区ToolStripMenuItem.Name = "打开工作区ToolStripMenuItem";
-            this.打开工作区ToolStripMenuItem.Size = new System.Drawing.Size(224, 26);
+            this.打开工作区ToolStripMenuItem.Size = new System.Drawing.Size(167, 26);
             this.打开工作区ToolStripMenuItem.Text = "打开工作区";
             this.打开工作区ToolStripMenuItem.Click += new System.EventHandler(this.打开工作区ToolStripMenuItem_Click);
             // 
             // 退出ToolStripMenuItem
             // 
             this.退出ToolStripMenuItem.Name = "退出ToolStripMenuItem";
-            this.退出ToolStripMenuItem.Size = new System.Drawing.Size(221, 6);
+            this.退出ToolStripMenuItem.Size = new System.Drawing.Size(164, 6);
             // 
             // 退出ToolStripMenuItem1
             // 
             this.退出ToolStripMenuItem1.Name = "退出ToolStripMenuItem1";
-            this.退出ToolStripMenuItem1.Size = new System.Drawing.Size(224, 26);
+            this.退出ToolStripMenuItem1.Size = new System.Drawing.Size(167, 26);
             this.退出ToolStripMenuItem1.Text = "退出";
             this.退出ToolStripMenuItem1.Click += new System.EventHandler(this.退出ToolStripMenuItem1_Click);
             // 
@@ -173,17 +173,17 @@
             this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
             this.toolStripStatusLabel2.Size = new System.Drawing.Size(0, 16);
             // 
+            // toolStripStatusLabel3
+            // 
+            this.toolStripStatusLabel3.Name = "toolStripStatusLabel3";
+            this.toolStripStatusLabel3.Size = new System.Drawing.Size(0, 16);
+            // 
             // panel1
             // 
             this.panel1.Location = new System.Drawing.Point(47, 339);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(101, 68);
             this.panel1.TabIndex = 5;
-            // 
-            // toolStripStatusLabel3
-            // 
-            this.toolStripStatusLabel3.Name = "toolStripStatusLabel3";
-            this.toolStripStatusLabel3.Size = new System.Drawing.Size(0, 16);
             // 
             // MainForm
             // 

@@ -11,7 +11,7 @@ namespace WhAnno.PictureShow
 {
     class TextPictureBox: PictureBox
     {
-        public string fileDir;
+        public string filePath;
 
         public string fileName;
         public int index;
@@ -20,12 +20,12 @@ namespace WhAnno.PictureShow
         public Font paintFileNameFont;
         public Font paintIndexFont;
 
-        public TextPictureBox(string fileDir)
+        public TextPictureBox(string filePath)
         {
-            this.fileDir = fileDir;
+            this.filePath = filePath;
 
-            this.fileName = Path.GetFileNameWithoutExtension(fileDir);
-            this.Image = new Bitmap(fileDir);
+            this.fileName = Path.GetFileNameWithoutExtension(filePath);
+            this.Image = new Bitmap(filePath);
             this.SizeMode = PictureBoxSizeMode.Zoom;
             this.BorderStyle = BorderStyle.FixedSingle;
             this.paintFileNameFont = this.paintIndexFont = Font;
