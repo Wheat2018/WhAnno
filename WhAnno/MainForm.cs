@@ -16,12 +16,12 @@ namespace WhAnno
     {
         string workspace;
         
+        private TextPictureListPannel textPicturePannel = new TextPictureListPannel();
+        private Canva canva = new Canva();
 
         public MainForm()
         {
 
-            TextPictureListPannel textPicturePannel = new TextPictureListPannel();
-            Canva canva = new Canva();
             Controls.Add(textPicturePannel);
             Controls.Add(canva);
 
@@ -31,17 +31,17 @@ namespace WhAnno
                 textPicturePannel.Add(@"C:\Users\88033\Pictures\car.gif");
                 textPicturePannel.Add(@"C:\Users\88033\Pictures\无标题.png");
                 textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
-                //textPicturePannel.paintIndexFont = new Font(textPicturePannel.paintIndexFont.FontFamily, 15);
+                textPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
                 textPicturePannel.Width = 300;
             }
             {
                 canva.Dock = DockStyle.Left;
                 textPicturePannel.SelectedIndexChanged += (sender, e) => canva.SetImage(textPicturePannel.CurrentItem.Image);
-                textPicturePannel.Move += (sender, e) => canva.Width = textPicturePannel.Location.X;
+                textPicturePannel.Resize += (sender, e) => canva.Width = textPicturePannel.Location.X;
             }
+            MessagePrint.SolveMethods += PrintStatus;
 
             InitializeComponent();
-            MessagePrint.SolveMethods += PrintStatus;
         }
 
         private void PrintStatus(string describe, object data)

@@ -29,7 +29,7 @@ namespace WhAnno.PictureShow
             Image = new Bitmap(filePath);
             SizeMode = PictureBoxSizeMode.Zoom;
             BorderStyle = BorderStyle.FixedSingle;
-            paintFileNameFont = this.paintIndexFont = Font;
+            paintFileNameFont = paintIndexFont = Font;
         }
 
         protected override void OnPaint(PaintEventArgs pe)

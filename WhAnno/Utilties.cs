@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.CompilerServices;
+using System.Security.Policy;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -13,6 +16,11 @@ namespace WhAnno
         {
             public string describe;
             public object data;
+            public Message(string describe, object data)
+            {
+                this.describe = describe;
+                this.data = data;
+            }
         }
 
         private static ConcurrentQueue<Message> messages = new ConcurrentQueue<Message>();
@@ -43,10 +51,7 @@ namespace WhAnno
                     }
                 }
             }
-            Message message = new Message();
-            message.describe = describe;
-            message.data = data;
-            messages.Enqueue(message);
+            messages.Enqueue(new Message(describe, data));
             thread_suspend.Set();
         }
 
@@ -59,10 +64,11 @@ namespace WhAnno
         {
             while (true)
             {
-                if (messages.Count == 0) thread_suspend.WaitOne();
                 Message message;
                 if (messages.TryDequeue(out message))
                     SolveMethods?.Invoke(message.describe, message.data);
+                else
+                    thread_suspend.WaitOne();
             }
         }
     }
@@ -98,18 +104,32 @@ namespace WhAnno
     {
         class MouseLeft
         {
+            private static Dictionary<object, EventHandler> lambdaDict = new Dictionary<object, EventHandler>();
             /// <summary>
-            /// 重新生成鼠标事件，仅当鼠标为左击时才触发目标事件
+            /// 生成鼠标事件，仅当鼠标为左击时才触发目标事件
+            /// 作为附加特性，该方法保证两次使用相同arg调用时，
+            /// 返回的事件是同一个实例。（第三次不同）
             /// </summary>
             /// <param name="func">目标事件</param>
-            /// <returns>重新生成的鼠标事件</returns>
-            public static EventHandler Get(EventHandler func)
+            /// <param name="arg">目标事件的参数</param>
+            /// <returns>生成的鼠标事件</returns>
+            public static EventHandler Get<T>(Action<T> func, T arg) where T : class
             {
-                return new EventHandler((sender, e) =>
+                EventHandler result;
+                if(! lambdaDict.TryGetValue(arg, out result))
                 {
-                    if (e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left)
-                        func(sender, e);
-                });
+                    result = new EventHandler((sender, e) =>
+                    {
+                        if (e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left)
+                            func(arg);
+                    });
+                    lambdaDict[arg] = result;
+                }
+                else 
+                {
+                    lambdaDict.Remove(arg);
+                }
+                return result;
             }
 
         }

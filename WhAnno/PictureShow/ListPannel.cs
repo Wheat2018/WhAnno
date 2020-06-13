@@ -10,13 +10,13 @@ using System.Windows.Forms;
 
 namespace WhAnno.PictureShow
 {
-
-    class ListPannel<ItemType> : FlowLayoutPanel where ItemType: Control
-    {
-        public enum LayoutFlowMode
+        public enum FlowMode
         {
             Horizon, Vertical
         }
+
+    class ListPannel<ItemType> : FlowLayoutPanel where ItemType: Control
+    {
 
         //Properties
         /// <summary>
@@ -46,10 +46,10 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 获取或设置ListPanel的布局滚动方向
         /// </summary>
-        public LayoutFlowMode FlowMode
+        public FlowMode FlowMode
         { 
-            get => WrapContents == true ? LayoutFlowMode.Vertical : LayoutFlowMode.Horizon;
-            set => WrapContents = (value == LayoutFlowMode.Vertical ? true : false);
+            get => WrapContents == true ? FlowMode.Vertical : FlowMode.Horizon;
+            set => WrapContents = (value == FlowMode.Vertical ? true : false);
         }
 
 
@@ -62,6 +62,10 @@ namespace WhAnno.PictureShow
         /// 添加项后触发事件
         /// </summary>
         public event EventHandler<ItemType> ItemAdded;
+        /// <summary>
+        /// 删除项后触发事件
+        /// </summary>
+        public event EventHandler<ItemType> ItemRemoved;
 
         //Method
         /// <summary>
@@ -84,23 +88,47 @@ namespace WhAnno.PictureShow
         /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
         public ListPannel(bool shareMouseEvent = true)
         {
-            AutoScroll = true;
 
             if (shareMouseEvent)
             {
+                void MouseClick(object _sender, MouseEventArgs _e) => OnMouseClick(ParentMouse.Get(_sender, _e));
+                void MouseDoubleClick(object _sender, MouseEventArgs _e) => OnMouseDoubleClick(ParentMouse.Get(_sender, _e));
+                void MouseDown(object _sender, MouseEventArgs _e) => OnMouseDown(ParentMouse.Get(_sender, _e));
+                void MouseMove(object _sender, MouseEventArgs _e) => OnMouseMove(ParentMouse.Get(_sender, _e));
+                void MouseUp(object _sender, MouseEventArgs _e) => OnMouseUp(ParentMouse.Get(_sender, _e));
+                void MouseWheel(object _sender, MouseEventArgs _e) => OnMouseWheel(ParentMouse.Get(_sender, _e));
+
+                void MouseCaptureChanged(object _sender, EventArgs _e) => OnMouseCaptureChanged(_e);
+                void MouseEnter(object _sender, EventArgs _e) => OnMouseEnter(_e);
+                void MouseHover(object _sender, EventArgs _e) => OnMouseHover(_e);
+                void MouseLeave(object _sender, EventArgs _e) => OnMouseLeave(_e);
                 ItemAdded += new EventHandler<ItemType>((sender, item) =>
                 {
-                    item.MouseClick += (_sender, _e) => OnMouseClick(ParentMouse.Get(_sender, _e));
-                    item.MouseDoubleClick += (_sender, _e) => OnMouseDoubleClick(ParentMouse.Get(_sender, _e));
-                    item.MouseDown += (_sender, _e) => OnMouseDown(ParentMouse.Get(_sender, _e));
-                    item.MouseMove += (_sender, _e) => OnMouseMove(ParentMouse.Get(_sender, _e));
-                    item.MouseUp += (_sender, _e) => OnMouseUp(ParentMouse.Get(_sender, _e));
-                    item.MouseWheel += (_sender, _e) => OnMouseWheel(ParentMouse.Get(_sender, _e));
-                    
-                    item.MouseCaptureChanged += (_sender, _e) => OnMouseCaptureChanged(_e);
-                    item.MouseEnter += (_sender, _e) => OnMouseEnter(_e);
-                    item.MouseHover += (_sender, _e) => OnMouseHover(_e);
-                    item.MouseLeave += (_sender, _e) => OnMouseLeave(_e);
+                    item.MouseClick += MouseClick;
+                    item.MouseDoubleClick += MouseDoubleClick;
+                    item.MouseDown += MouseDown;
+                    item.MouseMove += MouseMove;
+                    item.MouseUp += MouseUp;
+                    item.MouseWheel += MouseWheel;
+
+                    item.MouseCaptureChanged += MouseCaptureChanged;
+                    item.MouseEnter += MouseEnter;
+                    item.MouseHover += MouseHover;
+                    item.MouseLeave += MouseLeave;
+                });
+                ItemRemoved += new EventHandler<ItemType>((sender, item) =>
+                {
+                    item.MouseClick -= MouseClick;
+                    item.MouseDoubleClick -= MouseDoubleClick;
+                    item.MouseDown -= MouseDown;
+                    item.MouseMove -= MouseMove;
+                    item.MouseUp -= MouseUp;
+                    item.MouseWheel -= MouseWheel;
+
+                    item.MouseCaptureChanged -= MouseCaptureChanged;
+                    item.MouseEnter -= MouseEnter;
+                    item.MouseHover -= MouseHover;
+                    item.MouseLeave -= MouseLeave;
                 });
             }
         }
@@ -118,21 +146,33 @@ namespace WhAnno.PictureShow
             OnItemAdded(item);
         }
 
-        public delegate void Apply(ItemType item);
+        public void Clear()
+        {
+            while (Count > 0) Remove(GetItem(0));
+        }
+
+        public void Remove(ItemType item)
+        {
+            if (CurrentItem == item) CurrentItem = default;
+            if (LastItem == item) LastItem = default;
+            items.Remove(item);
+            Controls.Remove(item);
+            OnItemRemoved(item);
+        }
+
         /// <summary>
         /// 对每个项应用操作
         /// </summary>
         /// <param name="applyFunc">操作</param>
-        public void ForEachItem(Apply applyFunc)
+        public void ForEachItem(Action<ItemType> applyFunc)
         {
-            foreach (ItemType item in items)
-            {
-                applyFunc(item);
-            }
+            foreach (ItemType item in items) applyFunc(item);
         }
 
         private void ChangeSelection(ItemType target)
         {
+            if (CurrentItem == target) return;
+
             LastItem = CurrentItem;
             CurrentItem = target;
             OnSelectedIndexChanged(new EventArgs());
@@ -157,20 +197,35 @@ namespace WhAnno.PictureShow
         /// <param name="item">添加的项</param>
         protected virtual void OnItemAdded(ItemType item)
         {
-            item.Click += Lambda.MouseLeft.Get((_sender, _e) => ChangeSelection(item));
+            item.Click += Lambda.MouseLeft.Get(ChangeSelection, item);
             ItemAdded?.Invoke(this, item);
+        }
+        protected virtual void OnItemRemoved(ItemType item)
+        {
+            item.Click -= Lambda.MouseLeft.Get(ChangeSelection, item);
+            ItemRemoved?.Invoke(this, item);
         }
 
         protected override void OnResize(EventArgs e)
         {
             if (Count > 0)
             {
+                int hValue, vValue;
+                hValue = HorizontalScroll.Value;
+                vValue = VerticalScroll.Value;
+                AutoScroll = false;
+
                 Size eachSize = new Size(BestDisplaySize.Width / LayoutRange.Width, BestDisplaySize.Height / LayoutRange.Height);
                 ForEachItem((item) =>
                 {
                     item.Width = eachSize.Width - item.Margin.Left - item.Margin.Right;
                     item.Height = eachSize.Height - item.Margin.Top - item.Margin.Bottom;
                 });
+                AutoScroll = true;
+                HorizontalScroll.Value = hValue;
+                VerticalScroll.Value = vValue;
+
+                MessagePrint.AddMessage("", eachSize.ToString());
             }
             base.OnResize(e);
         }
@@ -212,7 +267,7 @@ namespace WhAnno.PictureShow
         { 
             get
             {
-                if (FlowMode == LayoutFlowMode.Horizon)
+                if (FlowMode == FlowMode.Horizon)
                     return new Size((int)Math.Ceiling((double)Count / Groups), Groups);
                 else
                     return new Size(Groups, (int)Math.Ceiling((double)Count / Groups));
@@ -251,7 +306,7 @@ namespace WhAnno.PictureShow
             get
             {
                 SizeF displaySize = new SizeF(LayoutRange.Width, LayoutRange.Height * Aspect);
-                if (FlowMode == LayoutFlowMode.Horizon)
+                if (FlowMode == FlowMode.Horizon)
                 {
                     float height = displaySize.Height * MaxClientSize.Width / displaySize.Width;
                     if (height < MinClientSize.Height)
