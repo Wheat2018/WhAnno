@@ -24,7 +24,10 @@ namespace WhAnno.Anno
 
         public void SetImage(Image image)
         {
-            Pic.Image = image;
+            //此处必须创建image的副本。因为Image类会为Bitmap动图创建某种线程，
+            //而多次传递Image实例，会导致动图绑定多个线程，造成卡顿和跳帧。
+            Pic.Image?.Dispose();
+            Pic.Image = image.Clone() as Image;
         }
 
         protected override void OnMouseMove(MouseEventArgs e)

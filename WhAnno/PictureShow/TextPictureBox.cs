@@ -14,6 +14,7 @@ namespace WhAnno.PictureShow
         public string filePath;
 
         public string fileName;
+
         public int index;
 
         //Style
@@ -24,11 +25,11 @@ namespace WhAnno.PictureShow
         {
             this.filePath = filePath;
 
-            this.fileName = Path.GetFileNameWithoutExtension(filePath);
-            this.Image = new Bitmap(filePath);
-            this.SizeMode = PictureBoxSizeMode.Zoom;
-            this.BorderStyle = BorderStyle.FixedSingle;
-            this.paintFileNameFont = this.paintIndexFont = Font;
+            fileName = Path.GetFileNameWithoutExtension(filePath);
+            Image = new Bitmap(filePath);
+            SizeMode = PictureBoxSizeMode.Zoom;
+            BorderStyle = BorderStyle.FixedSingle;
+            paintFileNameFont = this.paintIndexFont = Font;
         }
 
         protected override void OnPaint(PaintEventArgs pe)

@@ -20,7 +20,7 @@ namespace WhAnno
         private static AutoResetEvent thread_suspend = new AutoResetEvent(false);
 
         public delegate void DelegateSolveMethod(string describe, object data);
-        public static DelegateSolveMethod solveMethods = new DelegateSolveMethod(DefaultSolveMethod);
+        public static event DelegateSolveMethod SolveMethods = new DelegateSolveMethod(DefaultSolveMethod);
 
         /// <summary>
         /// 将新的待打印消息添加到队列
@@ -62,7 +62,7 @@ namespace WhAnno
                 if (messages.Count == 0) thread_suspend.WaitOne();
                 Message message;
                 if (messages.TryDequeue(out message))
-                    solveMethods(message.describe, message.data);
+                    SolveMethods?.Invoke(message.describe, message.data);
             }
         }
     }
@@ -80,6 +80,18 @@ namespace WhAnno
             Point loc = (sender as Control).Location;
             return new MouseEventArgs(e.Button, e.Clicks, e.X + loc.X, e.Y + loc.Y, e.Delta);
         }
+    }
+
+    class SystemScorllBar
+    {
+        /// <summary>
+        /// 系统垂直滚动条宽度
+        /// </summary>
+        public static int VerticalWidth { get => SystemInformation.VerticalScrollBarWidth; }
+        /// <summary>
+        /// 系统水平滚动条高度
+        /// </summary>
+        public static int HorizonHeight { get => SystemInformation.HorizontalScrollBarHeight; }
     }
 
     namespace Lambda

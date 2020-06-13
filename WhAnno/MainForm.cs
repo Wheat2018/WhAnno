@@ -19,17 +19,16 @@ namespace WhAnno
 
         public MainForm()
         {
-            MessagePrint.solveMethods += PrintStatus;
 
             TextPictureListPannel textPicturePannel = new TextPictureListPannel();
             Canva canva = new Canva();
-            this.Controls.Add(textPicturePannel);
-            this.Controls.Add(canva);
+            Controls.Add(textPicturePannel);
+            Controls.Add(canva);
 
             {
                 textPicturePannel.Dock = DockStyle.Right;
                 textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ图片202.png");
-                //textPicturePannel.Add(@"C:\Users\88033\Pictures\car.gif");
+                textPicturePannel.Add(@"C:\Users\88033\Pictures\car.gif");
                 textPicturePannel.Add(@"C:\Users\88033\Pictures\无标题.png");
                 textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
                 //textPicturePannel.paintIndexFont = new Font(textPicturePannel.paintIndexFont.FontFamily, 15);
@@ -42,22 +41,32 @@ namespace WhAnno
             }
 
             InitializeComponent();
+            MessagePrint.SolveMethods += PrintStatus;
         }
 
         private void PrintStatus(string describe, object data)
         {
-            switch (describe)
+            //事件调用该函数，执行线程并不是创建状态栏控件的线程
+            //需将打印任务交给创建状态栏的线程，否则可能出现异常
+            try
             {
-                case "status":
-                    toolStripStatusLabel1.Text = data as string;
-                    break;
-                case "info":
-                    toolStripStatusLabel2.Text = data as string;
-                    break;
-                default:
-                    toolStripStatusLabel3.Text = data as string;
-                    break;
+                Invoke(new Action(() =>
+                {
+                    switch (describe)
+                    {
+                        case "status":
+                            toolStripStatusLabel1.Text = data as string;
+                            break;
+                        case "info":
+                            toolStripStatusLabel2.Text = data as string;
+                            break;
+                        default:
+                            toolStripStatusLabel3.Text = data as string;
+                            break;
+                    }
+                }));
             }
+            catch { }
         }
 
         private void 打开工作区ToolStripMenuItem_Click(object sender, EventArgs e)
@@ -80,5 +89,6 @@ namespace WhAnno
         {
             
         }
+
     }
 }

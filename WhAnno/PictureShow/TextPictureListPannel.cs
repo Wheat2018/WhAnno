@@ -29,23 +29,11 @@ namespace WhAnno.PictureShow
             Add(new TextPictureBox(picFilePath));
         }
 
-        protected override void OnResize(EventArgs eventargs)
-        {
-            ForEachItem((item) =>
-            {
-                if (WrapContents)
-                    item.Width = item.Height = Width - 25;
-                else
-                    item.Width = item.Height = Height - 25;
-            });
-            base.OnResize(eventargs);
-        }
-
         protected override void OnSelectedIndexChanged(EventArgs e)
         {
-            CurrentItem.BackColor = SystemColors.ActiveCaption;
             if (LastItem != default) 
                 LastItem.BackColor = SystemColors.Control;
+            CurrentItem.BackColor = SystemColors.ActiveCaption;
             MessagePrint.AddMessage("status", "选中: " + CurrentItem.fileName);
             base.OnSelectedIndexChanged(e);
         }
@@ -59,7 +47,6 @@ namespace WhAnno.PictureShow
         protected override void OnMouseMove(MouseEventArgs e)
         {
             MessagePrint.AddMessage("info", "鼠标: " + e.Location.ToString());
-            MessagePrint.AddMessage("", "滚动条: " + AutoScrollPosition.ToString());
             base.OnMouseMove(e);
         }
 
