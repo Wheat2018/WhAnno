@@ -144,11 +144,13 @@ namespace WhAnno.PictureShow
             items.Add(item);
             Controls.Add(item);
             OnItemAdded(item);
+            OnResize(new EventArgs());
         }
 
         public void Clear()
         {
             while (Count > 0) Remove(GetItem(0));
+            GC.Collect();
         }
 
         public void Remove(ItemType item)

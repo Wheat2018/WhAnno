@@ -20,7 +20,6 @@ namespace WhAnno.PictureShow
             BorderStyle = BorderStyle.FixedSingle;
         }
 
-        
         /// <summary>
         /// 从文件添加项
         /// </summary>

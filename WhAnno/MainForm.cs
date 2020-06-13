@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,11 +28,6 @@ namespace WhAnno
 
             {
                 textPicturePannel.Dock = DockStyle.Right;
-                textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ图片202.png");
-                textPicturePannel.Add(@"C:\Users\88033\Pictures\car.gif");
-                textPicturePannel.Add(@"C:\Users\88033\Pictures\无标题.png");
-                textPicturePannel.Add(@"C:\Users\88033\Pictures\QQ截图20200529222914.png");
-                textPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
                 textPicturePannel.Width = 300;
             }
             {
@@ -76,7 +72,27 @@ namespace WhAnno
             if (folder.ShowDialog() == DialogResult.OK)
             {
                 workspace = folder.SelectedPath;
-                
+                DirectoryInfo wkDir = new DirectoryInfo(workspace);
+                FileInfo[] files = wkDir.GetFiles();
+
+                textPicturePannel.Clear();
+
+                foreach (FileInfo file in files)
+                {
+                    switch (file.Extension)
+                    {
+                        case ".png":
+                        case ".gif":
+                        case ".jpg":
+                        case ".bmp":
+                            textPicturePannel.Add(file.FullName);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                textPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
+
             }
         }
 
