@@ -17,6 +17,7 @@ namespace WhAnno.PictureShow
 
         public TextPictureListPannel()
         {
+            AutoScroll = true;
             BorderStyle = BorderStyle.FixedSingle;
         }
 
@@ -29,19 +30,39 @@ namespace WhAnno.PictureShow
             Add(new TextPictureBox(picFilePath));
         }
 
-        protected override void OnSelectedIndexChanged(EventArgs e)
+        /// <summary>
+        /// 处理TextPictureBox特性：索引值
+        /// </summary>
+        /// <param name="item"></param>
+        protected override void OnItemAdded(TextPictureBox item, EventArgs e)
         {
-            if (LastItem != default) 
-                LastItem.BackColor = SystemColors.Control;
-            CurrentItem.BackColor = SystemColors.ActiveCaption;
-            MessagePrint.AddMessage("status", "选中: " + CurrentItem.fileName);
-            base.OnSelectedIndexChanged(e);
+            item.Index = IndexOf(item);
+            base.OnItemAdded(item, e);
         }
 
-        protected override void OnItemAdded(TextPictureBox item)
+        /// <summary>
+        /// 处理TextPictureBox特性：索引值
+        /// </summary>
+        /// <param name="item"></param>
+        protected override void OnItemRemoved(TextPictureBox item, EventArgs e)
         {
-            item.index = Count;
-            base.OnItemAdded(item);
+            ForEachItem((_item) => _item.Index = IndexOf(_item));
+            base.OnItemRemoved(item, e);
+        }
+
+        /// <summary>
+        /// 选中项的视觉效果变更。
+        /// </summary>
+        /// <param name="e"></param>
+        protected override void OnSelectedIndexChanged(TextPictureBox item, EventArgs e)
+        {
+            if (LastItem != default)
+            {
+                LastItem.BackColor = CurrentItem.BackColor;
+            }
+            CurrentItem.BackColor = SystemColors.ActiveCaption;
+            MessagePrint.AddMessage("status", "选中: " + CurrentItem.FileName);
+            base.OnSelectedIndexChanged(item, e);
         }
 
         protected override void OnMouseMove(MouseEventArgs e)

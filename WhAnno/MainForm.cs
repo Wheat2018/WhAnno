@@ -5,10 +5,12 @@ using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WhAnno.Anno;
+using WhAnno.Anno.Base;
 using WhAnno.PictureShow;
 
 namespace WhAnno
@@ -16,28 +18,39 @@ namespace WhAnno
     public partial class MainForm : Form
     {
         string workspace;
-        
+
         private TextPictureListPannel textPicturePannel = new TextPictureListPannel();
+        private BrushListPannel brushListPanel = new BrushListPannel();
         private Canva canva = new Canva();
 
         public MainForm()
         {
-
             Controls.Add(textPicturePannel);
             Controls.Add(canva);
+            Controls.Add(brushListPanel);
+
+            InitializeComponent();
 
             {
                 textPicturePannel.Dock = DockStyle.Right;
-                textPicturePannel.Width = 300;
+                textPicturePannel.Width = 200;
+            }
+            {
+                brushListPanel.Dock = DockStyle.Right;
+                brushListPanel.Width = 30;
+                foreach (Type item in Assembly.GetExecutingAssembly().GetTypes())
+                {
+                    if (item.FullName.Contains("WhAnno.Anno.Brush."))
+                    {
+                        brushListPanel.Add(Assembly.GetExecutingAssembly().CreateInstance(item.FullName) as BrushBase);
+                    }
+                }
             }
             {
                 canva.Dock = DockStyle.Left;
-                textPicturePannel.SelectedIndexChanged += (sender, e) => canva.SetImage(textPicturePannel.CurrentItem.Image);
-                textPicturePannel.Resize += (sender, e) => canva.Width = textPicturePannel.Location.X;
+                textPicturePannel.SelectedIndexChanged += (sender, item, e) => canva.SetImage(item.Image);
             }
             MessagePrint.SolveMethods += PrintStatus;
-
-            InitializeComponent();
         }
 
         private void PrintStatus(string describe, object data)
@@ -56,13 +69,19 @@ namespace WhAnno
                         case "info":
                             toolStripStatusLabel2.Text = data as string;
                             break;
-                        default:
+                        case "exception":
                             toolStripStatusLabel3.Text = data as string;
+                            break;
+                        default:
+                            toolStripStatusLabel4.Text = data as string;
                             break;
                     }
                 }));
             }
-            catch { }
+            catch (Exception e)
+            {
+                MessagePrint.AddMessage("exception", e.Message);
+            }
         }
 
         private void 打开工作区ToolStripMenuItem_Click(object sender, EventArgs e)
@@ -96,6 +115,12 @@ namespace WhAnno
             }
         }
 
+        protected override void OnLayout(LayoutEventArgs levent)
+        {
+            base.OnLayout(levent);
+            canva.Width = textPicturePannel.Location.X - canva.Location.X;
+        }
+
         private void 退出ToolStripMenuItem1_Click(object sender, EventArgs e)
         {
             Close();
@@ -106,5 +131,10 @@ namespace WhAnno
             
         }
 
+        private void testToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            
+            textPicturePannel.Remove(textPicturePannel.GetItem(2));
+        }
     }
 }

@@ -49,6 +49,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Anno\BrushListPannel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Anno\Brush\Brush.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Anno\Canva.cs">
       <SubType>Component</SubType>
     </Compile>

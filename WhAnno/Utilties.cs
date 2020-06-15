@@ -100,38 +100,40 @@ namespace WhAnno
         public static int HorizonHeight { get => SystemInformation.HorizontalScrollBarHeight; }
     }
 
-    namespace Lambda
+    namespace Judge
     {
-        class MouseLeft
+        class MouseEvent
         {
-            private static Dictionary<object, EventHandler> lambdaDict = new Dictionary<object, EventHandler>();
             /// <summary>
-            /// 生成鼠标事件，仅当鼠标为左击时才触发目标事件
-            /// 作为附加特性，该方法保证两次使用相同arg调用时，
-            /// 返回的事件是同一个实例。（第三次不同）
+            /// 判断事件是否为鼠标左击事件
             /// </summary>
-            /// <param name="func">目标事件</param>
-            /// <param name="arg">目标事件的参数</param>
-            /// <returns>生成的鼠标事件</returns>
-            public static EventHandler Get<T>(Action<T> func, T arg) where T : class
+            /// <typeparam name="EventType"></typeparam>
+            /// <param name="e"></param>
+            /// <returns></returns>
+            public static bool Left<EventType>(EventType e) where EventType : EventArgs
             {
-                EventHandler result;
-                if(! lambdaDict.TryGetValue(arg, out result))
-                {
-                    result = new EventHandler((sender, e) =>
-                    {
-                        if (e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left)
-                            func(arg);
-                    });
-                    lambdaDict[arg] = result;
-                }
-                else 
-                {
-                    lambdaDict.Remove(arg);
-                }
-                return result;
+                return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left;
             }
-
+            /// <summary>
+            /// 判断事件是否为鼠标右击事件
+            /// </summary>
+            /// <typeparam name="EventType"></typeparam>
+            /// <param name="e"></param>
+            /// <returns></returns>
+            public static bool Right<EventType>(EventType e) where EventType : EventArgs
+            {
+                return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Right;
+            }
+            /// <summary>
+            /// 判断事件是否为鼠标中击事件
+            /// </summary>
+            /// <typeparam name="EventType"></typeparam>
+            /// <param name="e"></param>
+            /// <returns></returns>
+            public static bool Middle<EventType>(EventType e) where EventType : EventArgs
+            {
+                return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Middle;
+            }
         }
     }
 }

@@ -11,11 +11,40 @@ namespace WhAnno.PictureShow
 {
     class TextPictureBox: PictureBox
     {
-        public string filePath;
-
-        public string fileName;
-
-        public int index;
+        /// <summary>
+        /// 图片的文件名（不含后缀）。
+        /// </summary>
+        public string FileName { get; private set; }
+        /// <summary>
+        /// 图片的全名。
+        /// </summary>
+        public string FilePath 
+        { 
+            get => filePath;
+            set
+            {
+                filePath = value;
+                FileName = Path.GetFileNameWithoutExtension(filePath);
+                Image?.Dispose();
+                //Image更改会自动触发重绘
+                Image = new Bitmap(filePath);
+            }
+        }
+        private string filePath;
+        /// <summary>
+        /// 要绘制的索引值。
+        /// </summary>
+        public int Index 
+        { 
+            get => index;
+            set
+            {
+                index = value;
+                //Index更改时触发重绘。
+                Invalidate();
+            }
+        }
+        private int index;
 
         //Style
         public Font paintFileNameFont;
@@ -23,10 +52,8 @@ namespace WhAnno.PictureShow
 
         public TextPictureBox(string filePath)
         {
-            this.filePath = filePath;
+            FilePath = filePath;
 
-            fileName = Path.GetFileNameWithoutExtension(filePath);
-            Image = new Bitmap(filePath);
             SizeMode = PictureBoxSizeMode.Zoom;
             BorderStyle = BorderStyle.FixedSingle;
             paintFileNameFont = paintIndexFont = Font;
@@ -35,11 +62,11 @@ namespace WhAnno.PictureShow
         protected override void OnPaint(PaintEventArgs pe)
         {
             base.OnPaint(pe);
-            SizeF size = pe.Graphics.MeasureString(fileName, Font);
+            SizeF size = pe.Graphics.MeasureString(FileName, Font);
             float startX = 0;
             float startY = Height - size.Height;
-            pe.Graphics.DrawString(fileName, paintFileNameFont, new SolidBrush(ForeColor), startX, startY);
-            pe.Graphics.DrawString(index.ToString(), paintIndexFont, new SolidBrush(ForeColor), 0, 0);
+            pe.Graphics.DrawString(FileName, paintFileNameFont, new SolidBrush(ForeColor), startX, startY);
+            pe.Graphics.DrawString(Index.ToString(), paintIndexFont, new SolidBrush(ForeColor), 0, 0);
         }
     }
 }
