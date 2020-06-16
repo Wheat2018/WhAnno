@@ -61,13 +61,13 @@ namespace WhAnno.PictureShow
                 LastItem.BackColor = CurrentItem.BackColor;
             }
             CurrentItem.BackColor = SystemColors.ActiveCaption;
-            MessagePrint.AddMessage("status", "选中: " + CurrentItem.FileName);
+            MessagePrint.Add("status", "选中: " + CurrentItem.FileName);
             base.OnSelectedIndexChanged(item, e);
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            MessagePrint.AddMessage("info", "鼠标: " + e.Location.ToString());
+            MessagePrint.Add("info", "鼠标: " + e.Location.ToString());
             base.OnMouseMove(e);
         }
 

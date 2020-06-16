@@ -41,7 +41,7 @@ namespace WhAnno
         /// </summary>
         /// <param name="describe">消息归类</param>
         /// <param name="data">消息内容</param>
-        public static void AddMessage(string describe, object data)
+        public static void Add(string describe, object data)
         {
             if (thread == null)
             {
@@ -85,6 +85,37 @@ namespace WhAnno
                 else
                     thread_suspend.WaitOne();
             }
+        }
+    }
+
+    class InvokeProcess
+    {
+        /// <summary>
+        /// 并发出新线程处理任务。
+        /// </summary>
+        /// <param name="action">要处理的任务</param>
+        /// <param name="join">是否等待任务结束（处理任务中若带有Invoke/BeginInvoke，请勿使用join，否则将发生死锁）</param>
+        public static void Now(Action action, bool join = false)
+        {
+            Thread thread = new Thread(new ThreadStart(action));
+            thread.IsBackground = true;
+            thread.Priority = ThreadPriority.Normal;
+            thread.Start();
+            if (join) thread.Join();
+        }
+        /// <summary>
+        /// 并发出新线程，线程在毫秒级延时后处理任务。
+        /// </summary>
+        /// <param name="millisecondsDelay">延时毫秒数</param>
+        /// <param name="action">要处理的任务</param>
+        /// <param name="join">是否等待任务结束（处理任务中若带有Invoke/BeginInvoke，请勿使用join，否则将发生死锁）</param>
+        public static void Delay(int millisecondsDelay, Action action, bool join = false)
+        {
+            Now(() =>
+            {
+                Thread.Sleep(millisecondsDelay);
+                action();
+            }, join);
         }
     }
 

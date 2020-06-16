@@ -24,8 +24,6 @@ namespace WhAnno
         private BrushListPannel brushListPanel = new BrushListPannel();
         private Canva canva = new Canva();
 
-        private SynchronizationContext MainThreadContext = null;
-
         public MainForm()
         {
             Controls.Add(textPicturePannel);
@@ -33,7 +31,6 @@ namespace WhAnno
             Controls.Add(brushListPanel);
 
             InitializeComponent();
-            MainThreadContext = SynchronizationContext.Current;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -70,6 +67,19 @@ namespace WhAnno
                 {
                     switch (describe)
                     {
+                        case "progress":
+                            toolStripProgressBar1.Visible = true;
+                            toolStripProgressBar1.Value = (int)data;
+                            statusStrip1.Refresh();
+                            if (toolStripProgressBar1.Value == 100)
+                            {
+                                //延时一段时间后将进度条设为不可见
+                                InvokeProcess.Delay(1000, () =>
+                                {
+                                     Invoke(new Action(() => { toolStripProgressBar1.Visible = false; }));
+                                });
+                            }
+                            break;
                         case "status":
                             toolStripStatusLabel1.Text = data as string;
                             break;
@@ -79,23 +89,17 @@ namespace WhAnno
                         case "exception":
                             toolStripStatusLabel3.Text = data as string;
                             break;
-                        case "progress":
-                            toolStripProgressBar1.Visible = true;
-                            toolStripProgressBar1.Value = (int)data;
-                            if (toolStripProgressBar1.Value == 100) toolStripProgressBar1.Visible = false;
-                            break;
                         default:
                             toolStripStatusLabel4.Text = data as string;
                             break;
                     }
-
                 });
                 if (InvokeRequired) BeginInvoke(solve);
                 else solve();
             }
             catch (Exception e)
             {
-                MessagePrint.AddMessage("exception", e.Message);
+                MessagePrint.Add("exception", e.Message);
             }
         }
 
@@ -105,27 +109,38 @@ namespace WhAnno
             folder.Description = "选择标注工作区";
             if (folder.ShowDialog() == DialogResult.OK)
             {
+                MessagePrint.Add("status", "加载中");
                 workspace = folder.SelectedPath;
                 DirectoryInfo wkDir = new DirectoryInfo(workspace);
                 FileInfo[] files = wkDir.GetFiles();
 
                 textPicturePannel.Clear();
 
-                for (int i = 0; i < files.Length; i++)
+                InvokeProcess.Now(() =>
                 {
-                    switch (files[i].Extension)
+                    for (int i = 0; i < files.Length; i++)
                     {
-                        case ".png":
-                        case ".gif":
-                        case ".jpg":
-                        case ".bmp":
-                            textPicturePannel.Add(files[i].FullName);
-                            break;
-                        default:
-                            break;
+                        switch (files[i].Extension)
+                        {
+                            case ".png":
+                            case ".gif":
+                            case ".jpg":
+                            case ".bmp":
+                                Invoke(new Action(() =>
+                                {
+                                    textPicturePannel.Add(files[i].FullName);
+                                }));
+                                break;
+                            default:
+                                break;
+                        }
+                        int progress = (int)((float)(i + 1) / files.Length * 100);
+                        MessagePrint.Add("progress", progress);
+                        MessagePrint.Add("status", "加载中" + progress.ToString() + "%");
                     }
-                    MessagePrint.AddMessage("progress", (int)((float)(i + 1) / files.Length * 100));
-                }
+                    MessagePrint.Add("status", "就绪");
+                });
+
                 textPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
 
             }

@@ -22,7 +22,7 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 获取项总数。
         /// </summary>
-        public int Count { get => items.Count; }
+        public int Count { get => Items.Count; }
         /// <summary>
         /// 分组数。
         /// </summary>
@@ -51,11 +51,10 @@ namespace WhAnno.PictureShow
             get => WrapContents == true ? FlowMode.Vertical : FlowMode.Horizon;
             set => WrapContents = (value == FlowMode.Vertical ? true : false);
         }
-
         /// <summary>
         /// 所有项
         /// </summary>
-        protected readonly ArrayList items = new ArrayList();
+        public ControlCollection Items { get => Controls; }
 
         //Event
         public delegate void ItemEventHandle(object sender, ItemType item, EventArgs e);
@@ -168,14 +167,14 @@ namespace WhAnno.PictureShow
         /// </summary>
         /// <param name="index">索引值</param>
         /// <returns>项</returns>
-        public ItemType GetItem(int index) => items[index] as ItemType;
+        public ItemType GetItem(int index) => Items[index] as ItemType;
 
         /// <summary>
         /// 获取项的索引值
         /// </summary>
         /// <param name="item">项</param>
         /// <returns>索引值</returns>
-        public int IndexOf(ItemType item) => items.IndexOf(item);
+        public int IndexOf(ItemType item) => Items.IndexOf(item);
 
         /// <summary>
         /// 添加项。
@@ -183,10 +182,9 @@ namespace WhAnno.PictureShow
         /// <param name="item">项</param>
         public void Add(ItemType item)
         {
-            if (items.Contains(item)) return;
+            if (Items.Contains(item)) return;
 
-            items.Add(item);
-            Controls.Add(item);
+            Items.Add(item);
 
             OnItemAdded(item, new EventArgs());
         }
@@ -197,12 +195,11 @@ namespace WhAnno.PictureShow
         /// <param name="item"></param>
         public void Remove(ItemType item)
         {
-            if (!items.Contains(item)) return;
+            if (!Items.Contains(item)) return;
 
             if (CurrentItem == item) CurrentItem = default;
             if (LastItem == item) LastItem = default;
-            items.Remove(item);
-            Controls.Remove(item);
+            Items.Remove(item);
 
             OnItemRemoved(item, new EventArgs());
         }
@@ -213,7 +210,7 @@ namespace WhAnno.PictureShow
         /// <param name="item"></param>
         public void Select(ItemType item)
         {
-            if (CurrentItem == item || !items.Contains(item)) return;
+            if (CurrentItem == item || !Items.Contains(item)) return;
 
             LastItem = CurrentItem;
             CurrentItem = item;
@@ -235,7 +232,7 @@ namespace WhAnno.PictureShow
         /// <param name="applyFunc">操作</param>
         public void ForEachItem(Action<ItemType> applyFunc)
         {
-            foreach (ItemType item in items) applyFunc(item);
+            foreach (ItemType item in Items) applyFunc(item);
         }
 
         //Overridable
@@ -432,7 +429,7 @@ namespace WhAnno.PictureShow
 
         //Private Implement Details
         private void NextIndex() => Select(GetItem((Index + 1) % Count));
-        private void PrevIndex() => Select(GetItem((items.Count + Index - 1) % Count));
+        private void PrevIndex() => Select(GetItem((Items.Count + Index - 1) % Count));
 
     }
 }
