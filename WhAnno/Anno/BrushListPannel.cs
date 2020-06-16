@@ -20,26 +20,39 @@ namespace WhAnno.Anno
         /// 每个项之间的间隔（相对于每项最佳区域大小）的倒数，默认为1/8。
         /// </summary>
         public Padding ItemMargin { get; set; } = new Padding(8);
+
         public BrushListPannel()
         {
             BorderStyle = BorderStyle.FixedSingle;
         }
 
+        /// <summary>
+        /// 鼠标移过子控件的视觉效果
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="e"></param>
         protected override void OnItemMouseEnter(BrushBase item, EventArgs e)
         {
             if (item != CurrentItem)
             {
                 item.BackColor = SystemColors.ActiveBorder;
             }
+            MessagePrint.AddMessage("", "MouseEnter " + item.GetType().Name);
             base.OnItemMouseEnter(item, e);
         }
 
+        /// <summary>
+        /// 鼠标移出子控件的视觉效果
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="e"></param>
         protected override void OnItemMouseLeave(BrushBase item, EventArgs e)
         {
             if (item != CurrentItem)
             {
                 item.BackColor = SystemColors.Control;
             }
+            MessagePrint.AddMessage("", "MouseLeave " + item.GetType().Name);
             base.OnItemMouseLeave(item, e);
         }
 
@@ -60,8 +73,7 @@ namespace WhAnno.Anno
         {
             ForEachItem((item) =>
             {
-                //item.BorderStyle = BorderStyle.FixedSingle;
-                item.Margin = new System.Windows.Forms.Padding(
+                item.Margin = new Padding(
                     EachBestDisplaySize.Width / ItemMargin.Left,
                     EachBestDisplaySize.Height / ItemMargin.Top,
                     EachBestDisplaySize.Width / ItemMargin.Right,

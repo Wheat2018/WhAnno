@@ -12,6 +12,10 @@ namespace WhAnno.Anno.Base
 {
     class BrushBase : PictureBox
     {
+        public BrushBase()
+        {
+            //BorderStyle = BorderStyle.FixedSingle;
+        }
 
     }
 }
@@ -56,25 +60,26 @@ namespace WhAnno.Anno.Brush
             pe.Graphics.DrawEllipse(new Pen(ForeColor, IconLineWidth), rect);
             base.OnPaint(pe);
         }
-        class Point : BrushBase
+    }
+
+    class Point : BrushBase
+    {
+        public int IconLineWidth { get; set; } = 2;
+
+        protected override void OnResize(EventArgs e)
         {
-            public int IconLineWidth { get; set; } = 2;
+            Invalidate();
+            base.OnResize(e);
+        }
+        protected override void OnPaint(PaintEventArgs pe)
+        {
+            pe.Graphics.SmoothingMode = SmoothingMode.HighQuality;
 
-            protected override void OnResize(EventArgs e)
-            {
-                Invalidate();
-                base.OnResize(e);
-            }
-            protected override void OnPaint(PaintEventArgs pe)
-            {
-                pe.Graphics.SmoothingMode = SmoothingMode.HighQuality;
-
-                System.Drawing.Rectangle rect = new System.Drawing.Rectangle(
-                    ClientSize.Width / 2 - IconLineWidth, ClientSize.Height / 2 - IconLineWidth,
-                    IconLineWidth * 2, IconLineWidth * 2);
-                pe.Graphics.FillEllipse(new SolidBrush(ForeColor), rect);
-                base.OnPaint(pe);
-            }
+            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(
+                ClientSize.Width / 2 - IconLineWidth, ClientSize.Height / 2 - IconLineWidth,
+                IconLineWidth * 2, IconLineWidth * 2);
+            pe.Graphics.FillEllipse(new SolidBrush(ForeColor), rect);
+            base.OnPaint(pe);
         }
     }
 

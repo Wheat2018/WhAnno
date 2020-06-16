@@ -61,53 +61,35 @@ namespace WhAnno.PictureShow
         public delegate void ItemEventHandle(object sender, ItemType item, EventArgs e);
         public delegate void ItemEventHandle<TEventArgs>(object sender, ItemType item, TEventArgs e);
         /// <summary>
-        /// 更改选中项后触发事件。
+        /// 更改选中项后发生。
         /// </summary>
         public event ItemEventHandle SelectedIndexChanged;
         /// <summary>
-        /// 添加项后触发事件
+        /// 添加项后发生
         /// </summary>
         public event ItemEventHandle ItemAdded;
         /// <summary>
-        /// 删除项后触发事件
+        /// 删除项后发生
         /// </summary>
         public event ItemEventHandle ItemRemoved;
         /// <summary>
-        /// 单击项触发事件
+        /// 单击项时发生
         /// </summary>
         public event ItemEventHandle ItemClick;
         /// <summary>
-        /// 鼠标进入项触发事件
+        /// 鼠标进入项时发生
         /// </summary>
         public event ItemEventHandle ItemMouseEnter;
         /// <summary>
-        /// 鼠标离开项触发事件
+        /// 鼠标离开项时发生
         /// </summary>
         public event ItemEventHandle ItemMouseLeave;
         /// <summary>
-        /// 鼠标悬停项触发事件
+        /// 鼠标悬停项时发生
         /// </summary>
         public event ItemEventHandle ItemMouseHover;
 
-
-
-
-
         //Method
-        /// <summary>
-        /// 获取面板中指定索引的项
-        /// </summary>
-        /// <param name="index">索引值</param>
-        /// <returns>项</returns>
-        public ItemType GetItem(int index) => items[index] as ItemType;
-
-        /// <summary>
-        /// 获取项的索引值
-        /// </summary>
-        /// <param name="item">项</param>
-        /// <returns>索引值</returns>
-        public int IndexOf(ItemType item) => items.IndexOf(item);
-
         /// <summary>
         /// 默认构造函数
         /// </summary>
@@ -139,12 +121,12 @@ namespace WhAnno.PictureShow
             //绑定子控件鼠标事件触发ListPannel鼠标事件
             if (shareMouseEvent)
             {
-                void MouseClick(object _sender, MouseEventArgs _e) => OnMouseClick(ParentMouse.Get(_sender, _e));
-                void MouseDoubleClick(object _sender, MouseEventArgs _e) => OnMouseDoubleClick(ParentMouse.Get(_sender, _e));
-                void MouseDown(object _sender, MouseEventArgs _e) => OnMouseDown(ParentMouse.Get(_sender, _e));
-                void MouseMove(object _sender, MouseEventArgs _e) => OnMouseMove(ParentMouse.Get(_sender, _e));
-                void MouseUp(object _sender, MouseEventArgs _e) => OnMouseUp(ParentMouse.Get(_sender, _e));
-                void MouseWheel(object _sender, MouseEventArgs _e) => OnMouseWheel(ParentMouse.Get(_sender, _e));
+                void MouseClick(object _sender, MouseEventArgs _e) => OnMouseClick(ParentMouse.Get(this, _sender, _e));
+                void MouseDoubleClick(object _sender, MouseEventArgs _e) => OnMouseDoubleClick(ParentMouse.Get(this, _sender, _e));
+                void MouseDown(object _sender, MouseEventArgs _e) => OnMouseDown(ParentMouse.Get(this, _sender, _e));
+                void MouseMove(object _sender, MouseEventArgs _e) => OnMouseMove(ParentMouse.Get(this, _sender, _e));
+                void MouseUp(object _sender, MouseEventArgs _e) => OnMouseUp(ParentMouse.Get(this, _sender, _e));
+                void MouseWheel(object _sender, MouseEventArgs _e) => OnMouseWheel(ParentMouse.Get(this, _sender, _e));
 
                 void MouseCaptureChanged(object _sender, EventArgs _e) => OnMouseCaptureChanged(_e);
                 void MouseEnter(object _sender, EventArgs _e) => OnMouseEnter(_e);
@@ -182,6 +164,20 @@ namespace WhAnno.PictureShow
         }
 
         /// <summary>
+        /// 获取面板中指定索引的项
+        /// </summary>
+        /// <param name="index">索引值</param>
+        /// <returns>项</returns>
+        public ItemType GetItem(int index) => items[index] as ItemType;
+
+        /// <summary>
+        /// 获取项的索引值
+        /// </summary>
+        /// <param name="item">项</param>
+        /// <returns>索引值</returns>
+        public int IndexOf(ItemType item) => items.IndexOf(item);
+
+        /// <summary>
         /// 添加项。
         /// </summary>
         /// <param name="item">项</param>
@@ -201,7 +197,7 @@ namespace WhAnno.PictureShow
         /// <param name="item"></param>
         public void Remove(ItemType item)
         {
-            if (!item.Contains(item)) return;
+            if (!items.Contains(item)) return;
 
             if (CurrentItem == item) CurrentItem = default;
             if (LastItem == item) LastItem = default;
@@ -209,6 +205,19 @@ namespace WhAnno.PictureShow
             Controls.Remove(item);
 
             OnItemRemoved(item, new EventArgs());
+        }
+
+        /// <summary>
+        /// 选中项。
+        /// </summary>
+        /// <param name="item"></param>
+        public void Select(ItemType item)
+        {
+            if (CurrentItem == item || !items.Contains(item)) return;
+
+            LastItem = CurrentItem;
+            CurrentItem = item;
+            OnSelectedIndexChanged(item, new EventArgs());
         }
 
         /// <summary>
@@ -221,19 +230,6 @@ namespace WhAnno.PictureShow
         }
 
         /// <summary>
-        /// 选中项。
-        /// </summary>
-        /// <param name="target"></param>
-        public void SelectItem(ItemType target)
-        {
-            if (CurrentItem == target || !items.Contains(target)) return;
-
-            LastItem = CurrentItem;
-            CurrentItem = target;
-            OnSelectedIndexChanged(target, new EventArgs());
-        }
-
-        /// <summary>
         /// 对每个项应用操作
         /// </summary>
         /// <param name="applyFunc">操作</param>
@@ -242,8 +238,9 @@ namespace WhAnno.PictureShow
             foreach (ItemType item in items) applyFunc(item);
         }
 
+        //Overridable
         /// <summary>
-        /// 引发ListPannel.SelectedIndexChanged事件
+        /// 引发 ListPannel.SelectedIndexChanged 事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
@@ -254,46 +251,46 @@ namespace WhAnno.PictureShow
         }
 
         /// <summary>
-        /// 引发ListPannel.ItemAdded事件
+        /// 引发 ListPannel.ItemAdded 事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
         protected virtual void OnItemAdded(ItemType item, EventArgs e) => ItemAdded?.Invoke(this, item, e);
 
         /// <summary>
-        /// 引发ListPannel.ItemRemoved事件
+        /// 引发 ListPannel.ItemRemoved 事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
         protected virtual void OnItemRemoved(ItemType item, EventArgs e) => ItemRemoved?.Invoke(this, item, e);
 
         /// <summary>
-        /// 引发ListPannel.ItemClick事件
+        /// 引发 ListPannel.ItemClick 事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
         protected virtual void OnItemClick(ItemType item, EventArgs e)
         {
-            if(Judge.MouseEvent.Left(e)) SelectItem(item);
+            if(Judge.MouseEvent.Left(e)) Select(item);
             ItemClick?.Invoke(this, item, e);
         }
 
         /// <summary>
-        /// 引发ListPannel.ItemMouseEnter事件
+        /// 引发 ListPannel.ItemMouseEnter 事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
         protected virtual void OnItemMouseEnter(ItemType item, EventArgs e) => ItemMouseEnter?.Invoke(this, item, e);
 
         /// <summary>
-        /// 引发ListPannel.ItemMouseLeave事件
+        /// 引发 ListPannel.ItemMouseLeave 事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
         protected virtual void OnItemMouseLeave(ItemType item, EventArgs e) => ItemMouseLeave?.Invoke(this, item, e);
 
         /// <summary>
-        /// 引发ListPannel.ItemMouseHover事件
+        /// 引发 ListPannel.ItemMouseHover 事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
@@ -351,8 +348,6 @@ namespace WhAnno.PictureShow
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }
-
-
 
         //Implement Details
         /// <summary>
@@ -436,8 +431,8 @@ namespace WhAnno.PictureShow
         }
 
         //Private Implement Details
-        private void NextIndex() => SelectItem(GetItem((Index + 1) % Count));
-        private void PrevIndex() => SelectItem(GetItem((items.Count + Index - 1) % Count));
+        private void NextIndex() => Select(GetItem((Index + 1) % Count));
+        private void PrevIndex() => Select(GetItem((items.Count + Index - 1) % Count));
 
     }
 }

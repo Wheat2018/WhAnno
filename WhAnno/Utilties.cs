@@ -12,6 +12,9 @@ namespace WhAnno
 {
     class MessagePrint
     {
+        /// <summary>
+        /// 消息类
+        /// </summary>
         struct Message
         {
             public string describe;
@@ -27,11 +30,14 @@ namespace WhAnno
         private static Thread thread = null;
         private static AutoResetEvent thread_suspend = new AutoResetEvent(false);
 
-        public delegate void DelegateSolveMethod(string describe, object data);
-        public static event DelegateSolveMethod SolveMethods = new DelegateSolveMethod(DefaultSolveMethod);
+        public delegate void MessageSolveMethod(string describe, object data);
+        /// <summary>
+        /// 消息处理方法
+        /// </summary>
+        public static event MessageSolveMethod SolveMessage;
 
         /// <summary>
-        /// 将新的待打印消息添加到队列
+        /// 将新的待打印消息添加到队列。
         /// </summary>
         /// <param name="describe">消息归类</param>
         /// <param name="data">消息内容</param>
@@ -43,7 +49,7 @@ namespace WhAnno
                 {
                     if (thread == null)
                     {
-                        thread = new Thread(new ThreadStart(SolveMessage));
+                        thread = new Thread(new ThreadStart(Solve));
                         thread.Name = "MessagePrint Unique Thread";
                         thread.Priority = ThreadPriority.Lowest;
                         thread.IsBackground = true;
@@ -55,18 +61,27 @@ namespace WhAnno
             thread_suspend.Set();
         }
 
-        private static void DefaultSolveMethod(string describe, object data)
+        /// <summary>
+        /// 引发 MessagePrint.SolveMessage 事件。
+        /// </summary>
+        /// <param name="describe">消息归类</param>
+        /// <param name="data">消息内容</param>
+        private static void OnSolveMessage(string describe, object data)
         {
             Console.WriteLine(describe + ":" + data.ToString());
+            SolveMessage?.Invoke(describe, data);
         }
 
-        private static void SolveMessage()
+        /// <summary>
+        /// 处理消息线程主函数。
+        /// </summary>
+        private static void Solve()
         {
             while (true)
             {
                 Message message;
                 if (messages.TryDequeue(out message))
-                    SolveMethods?.Invoke(message.describe, message.data);
+                    OnSolveMessage(message.describe, message.data);
                 else
                     thread_suspend.WaitOne();
             }
@@ -78,13 +93,14 @@ namespace WhAnno
         /// <summary>
         /// 获取相对父控件位置的鼠标事件
         /// </summary>
-        /// <param name="sender">子控件</param>
+        /// <param name="parent">父控件</param>
+        /// <param name="children">子控件</param>
         /// <param name="e">鼠标事件</param>
         /// <returns>由子空间在父控件的Location计算父控件鼠标事件</returns>
-        public static MouseEventArgs Get(object sender, MouseEventArgs e)
+        public static MouseEventArgs Get(object parent, object children, MouseEventArgs e)
         {
-            Point loc = (sender as Control).Location;
-            return new MouseEventArgs(e.Button, e.Clicks, e.X + loc.X, e.Y + loc.Y, e.Delta);
+            Point loc = (parent as Control).PointToClient((children as Control).PointToScreen(e.Location));
+            return new MouseEventArgs(e.Button, e.Clicks, loc.X, loc.Y, e.Delta);
         }
     }
 
@@ -110,7 +126,7 @@ namespace WhAnno
             /// <typeparam name="EventType"></typeparam>
             /// <param name="e"></param>
             /// <returns></returns>
-            public static bool Left<EventType>(EventType e) where EventType : EventArgs
+            public static bool Left(EventArgs e)
             {
                 return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left;
             }
@@ -120,7 +136,7 @@ namespace WhAnno
             /// <typeparam name="EventType"></typeparam>
             /// <param name="e"></param>
             /// <returns></returns>
-            public static bool Right<EventType>(EventType e) where EventType : EventArgs
+            public static bool Right(EventArgs e)
             {
                 return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Right;
             }
@@ -130,7 +146,7 @@ namespace WhAnno
             /// <typeparam name="EventType"></typeparam>
             /// <param name="e"></param>
             /// <returns></returns>
-            public static bool Middle<EventType>(EventType e) where EventType : EventArgs
+            public static bool Middle(EventArgs e)
             {
                 return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Middle;
             }

@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WhAnno.Anno;
@@ -23,6 +24,8 @@ namespace WhAnno
         private BrushListPannel brushListPanel = new BrushListPannel();
         private Canva canva = new Canva();
 
+        private SynchronizationContext MainThreadContext = null;
+
         public MainForm()
         {
             Controls.Add(textPicturePannel);
@@ -30,7 +33,11 @@ namespace WhAnno
             Controls.Add(brushListPanel);
 
             InitializeComponent();
+            MainThreadContext = SynchronizationContext.Current;
+        }
 
+        private void MainForm_Load(object sender, EventArgs e)
+        {
             {
                 textPicturePannel.Dock = DockStyle.Right;
                 textPicturePannel.Width = 200;
@@ -48,9 +55,9 @@ namespace WhAnno
             }
             {
                 canva.Dock = DockStyle.Left;
-                textPicturePannel.SelectedIndexChanged += (sender, item, e) => canva.SetImage(item.Image);
+                textPicturePannel.SelectedIndexChanged += (_sender, _item, _e) => canva.Image = _item.Image;
             }
-            MessagePrint.SolveMethods += PrintStatus;
+            MessagePrint.SolveMessage += PrintStatus;
         }
 
         private void PrintStatus(string describe, object data)
@@ -59,7 +66,7 @@ namespace WhAnno
             //需将打印任务交给创建状态栏的线程，否则可能出现异常
             try
             {
-                Invoke(new Action(() =>
+                Action solve = new Action(() =>
                 {
                     switch (describe)
                     {
@@ -72,11 +79,19 @@ namespace WhAnno
                         case "exception":
                             toolStripStatusLabel3.Text = data as string;
                             break;
+                        case "progress":
+                            toolStripProgressBar1.Visible = true;
+                            toolStripProgressBar1.Value = (int)data;
+                            if (toolStripProgressBar1.Value == 100) toolStripProgressBar1.Visible = false;
+                            break;
                         default:
                             toolStripStatusLabel4.Text = data as string;
                             break;
                     }
-                }));
+
+                });
+                if (InvokeRequired) BeginInvoke(solve);
+                else solve();
             }
             catch (Exception e)
             {
@@ -96,19 +111,20 @@ namespace WhAnno
 
                 textPicturePannel.Clear();
 
-                foreach (FileInfo file in files)
+                for (int i = 0; i < files.Length; i++)
                 {
-                    switch (file.Extension)
+                    switch (files[i].Extension)
                     {
                         case ".png":
                         case ".gif":
                         case ".jpg":
                         case ".bmp":
-                            textPicturePannel.Add(file.FullName);
+                            textPicturePannel.Add(files[i].FullName);
                             break;
                         default:
                             break;
                     }
+                    MessagePrint.AddMessage("progress", (int)((float)(i + 1) / files.Length * 100));
                 }
                 textPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
 
