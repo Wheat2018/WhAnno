@@ -4,13 +4,15 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Security.Policy;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace WhAnno
 {
-    class MessagePrint
+    public static class MessagePrint
     {
         /// <summary>
         /// 消息类
@@ -88,38 +90,32 @@ namespace WhAnno
         }
     }
 
-    class InvokeProcess
+    public static class AsyncProcess
     {
         /// <summary>
-        /// 并发出新线程处理任务。
+        /// 异步并发出新线程处理任务。
         /// </summary>
         /// <param name="action">要处理的任务</param>
-        /// <param name="join">是否等待任务结束（处理任务中若带有Invoke/BeginInvoke，请勿使用join，否则将发生死锁）</param>
-        public static void Now(Action action, bool join = false)
+        public async static Task Now(Action action)
         {
-            Thread thread = new Thread(new ThreadStart(action));
-            thread.IsBackground = true;
-            thread.Priority = ThreadPriority.Normal;
-            thread.Start();
-            if (join) thread.Join();
+            await Task.Run(action);
         }
         /// <summary>
-        /// 并发出新线程，线程在毫秒级延时后处理任务。
+        /// 异步并发出新线程，线程在毫秒级延时后处理任务。
         /// </summary>
         /// <param name="millisecondsDelay">延时毫秒数</param>
         /// <param name="action">要处理的任务</param>
-        /// <param name="join">是否等待任务结束（处理任务中若带有Invoke/BeginInvoke，请勿使用join，否则将发生死锁）</param>
-        public static void Delay(int millisecondsDelay, Action action, bool join = false)
+        public async static Task Delay(int millisecondsDelay, Action action)
         {
-            Now(() =>
+            await Now(() =>
             {
                 Thread.Sleep(millisecondsDelay);
                 action();
-            }, join);
+            });
         }
     }
 
-    class ParentMouse
+    public static class ParentMouse
     {
         /// <summary>
         /// 获取相对父控件位置的鼠标事件
@@ -135,7 +131,7 @@ namespace WhAnno
         }
     }
 
-    class SystemScorllBar
+    public static class SystemScorllBar
     {
         /// <summary>
         /// 系统垂直滚动条宽度
@@ -149,7 +145,7 @@ namespace WhAnno
 
     namespace Judge
     {
-        class MouseEvent
+        public static class MouseEvent
         {
             /// <summary>
             /// 判断事件是否为鼠标左击事件
@@ -181,6 +177,26 @@ namespace WhAnno
             {
                 return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Middle;
             }
+        }
+    }
+
+    public enum ProgressBarColor { Green = 1, Red, Yellow }
+    /// <summary>
+    /// 拓展ProgressBar的SetColor方法
+    /// </summary>
+    public static class ModifyProgressBarColor
+    {
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
+        static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr w, IntPtr l);
+
+        /// <summary>
+        /// 设置进度条颜色。
+        /// </summary>
+        /// <param name="bar">进度条实例</param>
+        /// <param name="color">进度条颜色</param>
+        public static void SetColor(this ProgressBar bar, ProgressBarColor color)
+        {
+            SendMessage(bar.Handle, 1040, (IntPtr)color, IntPtr.Zero);
         }
     }
 }

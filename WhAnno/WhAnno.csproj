@@ -49,6 +49,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnnoLoaderForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AnnoLoaderForm.Designer.cs">
+      <DependentUpon>AnnoLoaderForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Anno\BrushListPannel.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -76,6 +82,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Utilties.cs" />
+    <EmbeddedResource Include="AnnoLoaderForm.resx">
+      <DependentUpon>AnnoLoaderForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>

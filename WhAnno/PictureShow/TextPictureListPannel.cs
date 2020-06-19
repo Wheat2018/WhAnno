@@ -31,6 +31,17 @@ namespace WhAnno.PictureShow
         }
 
         /// <summary>
+        /// 异步从文件添加项
+        /// </summary>
+        /// <param name="picFilePath">文件路径</param>
+        public async Task AddAsync(string picFilePath)
+        {
+            TextPictureBox textPictureBox = new TextPictureBox();
+            await textPictureBox.SetPictureAsync(picFilePath);
+            Add(textPictureBox);
+        }
+
+        /// <summary>
         /// 处理TextPictureBox特性：索引值
         /// </summary>
         /// <param name="item"></param>

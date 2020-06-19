@@ -54,6 +54,9 @@ namespace WhAnno
                 canva.Dock = DockStyle.Left;
                 textPicturePannel.SelectedIndexChanged += (_sender, _item, _e) => canva.Image = _item.Image;
             }
+            {
+                toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
+            }
             MessagePrint.SolveMessage += PrintStatus;
         }
 
@@ -63,7 +66,7 @@ namespace WhAnno
             //需将打印任务交给创建状态栏的线程，否则可能出现异常
             try
             {
-                Action solve = new Action(() =>
+                BeginInvoke(new Action(() =>
                 {
                     switch (describe)
                     {
@@ -73,10 +76,15 @@ namespace WhAnno
                             statusStrip1.Refresh();
                             if (toolStripProgressBar1.Value == 100)
                             {
+                                toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Green);
                                 //延时一段时间后将进度条设为不可见
-                                InvokeProcess.Delay(1000, () =>
+                                _ = AsyncProcess.Delay(1000, () =>
                                 {
-                                     Invoke(new Action(() => { toolStripProgressBar1.Visible = false; }));
+                                     Invoke(new Action(() => 
+                                     { 
+                                         toolStripProgressBar1.Visible = false;
+                                         toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
+                                     }));
                                 });
                             }
                             break;
@@ -93,9 +101,7 @@ namespace WhAnno
                             toolStripStatusLabel4.Text = data as string;
                             break;
                     }
-                });
-                if (InvokeRequired) BeginInvoke(solve);
-                else solve();
+                }));
             }
             catch (Exception e)
             {
@@ -103,43 +109,53 @@ namespace WhAnno
             }
         }
 
-        private void 打开工作区ToolStripMenuItem_Click(object sender, EventArgs e)
+        private void 工作区ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            FolderBrowserDialog folder = new FolderBrowserDialog();
-            folder.Description = "选择标注工作区";
-            if (folder.ShowDialog() == DialogResult.OK)
+            worksapceFolderDialog.Description = "选择标注工作区";
+            if (worksapceFolderDialog.ShowDialog() == DialogResult.OK)
             {
                 MessagePrint.Add("status", "加载中");
-                workspace = folder.SelectedPath;
+                workspace = worksapceFolderDialog.SelectedPath;
                 DirectoryInfo wkDir = new DirectoryInfo(workspace);
-                FileInfo[] files = wkDir.GetFiles();
+                List<FileInfo> files = new List<FileInfo>();
+                foreach (FileInfo file in wkDir.GetFiles())
+                {
+                    switch (file.Extension.ToLower())
+                    {
+                        case ".png":
+                        case ".gif":
+                        case ".jpg":
+                        case ".bmp":
+                            files.Add(file);
+                            break;
+                        default:
+                            break;
+                    }
+                }
 
                 textPicturePannel.Clear();
 
-                InvokeProcess.Now(() =>
+                //异步加载所有图像，并发送进度消息。
+                int count = 0;
+                foreach (FileInfo file in files)
                 {
-                    for (int i = 0; i < files.Length; i++)
+                    //Invoke调用一个异步Lambda，将立即返回，且发出异步线程处理。
+                    //因此，该循环短时间内并发出与文件数相同的异步线程数，进行
+                    //包含IO操作的图像加载过程。
+                    Invoke(new Action(async () =>
                     {
-                        switch (files[i].Extension)
-                        {
-                            case ".png":
-                            case ".gif":
-                            case ".jpg":
-                            case ".bmp":
-                                Invoke(new Action(() =>
-                                {
-                                    textPicturePannel.Add(files[i].FullName);
-                                }));
-                                break;
-                            default:
-                                break;
-                        }
-                        int progress = (int)((float)(i + 1) / files.Length * 100);
+                        //等待图像加载完成。
+                        await textPicturePannel.AddAsync(file.FullName);
+                        //发送进度消息。
+                        Interlocked.Increment(ref count);
+                        int progress = (int)((float)count / files.Count * 100);
                         MessagePrint.Add("progress", progress);
-                        MessagePrint.Add("status", "加载中" + progress.ToString() + "%");
-                    }
-                    MessagePrint.Add("status", "就绪");
-                });
+                        if (progress < 100)
+                            MessagePrint.Add("status", "加载中" + progress.ToString() + "%");
+                        else
+                            MessagePrint.Add("status", "就绪");
+                    }));
+                }
 
                 textPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
 
@@ -152,20 +168,23 @@ namespace WhAnno
             canva.Width = textPicturePannel.Location.X - canva.Location.X;
         }
 
-        private void 退出ToolStripMenuItem1_Click(object sender, EventArgs e)
+        private void 退出ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Close();
         }
 
-        private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        private void 标注ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            
+            annoFileDialog.Title = "载入标注文本文件";
+            if (annoFileDialog.ShowDialog() == DialogResult.OK)
+            {
+            }
         }
 
         private void testToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            
-            textPicturePannel.Remove(textPicturePannel.GetItem(2));
+            Form form = new Form();
+            form.ShowDialog();
         }
     }
 }

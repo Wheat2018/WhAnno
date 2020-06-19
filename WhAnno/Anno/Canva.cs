@@ -73,7 +73,6 @@ namespace WhAnno.Anno
             BorderStyle = BorderStyle.FixedSingle;
             Controls.Add(PicBox);
             PicBox.SizeMode = PictureBoxSizeMode.StretchImage;
-            //PicBox.BorderStyle = BorderStyle.FixedSingle;
             PicBox.MouseDown += (sender, e) => OnMouseDown(ParentMouse.Get(this, sender, e));
             PicBox.MouseMove += (sender, e) => OnMouseMove(ParentMouse.Get(this, sender, e));
             PicBox.MouseUp += (sender, e) => OnMouseUp(ParentMouse.Get(this, sender, e));
@@ -131,16 +130,20 @@ namespace WhAnno.Anno
             base.OnResize(eventargs);
         }
 
+        /// <summary>
+        /// 图像缩放。
+        /// </summary>
+        /// <param name="e"></param>
         protected override void OnMouseWheel(MouseEventArgs e)
         {
-            Point anchorPoint = PointToRawImage(e.Location);
+            PointF anchorPoint = PointToRawImageF(e.Location);
 
             SizeF scale = new SizeF(ImageScale.Width * (1.0f + e.Delta / 1200f), ImageScale.Height * (1.0f + e.Delta / 1200f));
             if (scale.Width > 0.1 && scale.Width < 20 &&
                 scale.Height > 0.1 && scale.Height < 20) 
                 ImageScale = scale;
 
-            Point anchorPointToClient = PointToCanvaClient(anchorPoint);
+            Point anchorPointToClient = PointFToCanvaClient(anchorPoint);
             ImageLocation = new Point(ImageLocation.X - (anchorPointToClient.X - e.X), ImageLocation.Y - (anchorPointToClient.Y - e.Y));
             MessagePrint.Add("", "放大" + ImageScale.ToString());
             base.OnMouseWheel(e);
@@ -204,10 +207,20 @@ namespace WhAnno.Anno
         /// <returns></returns>
         protected Point PointToRawImage(Point point)
         {
-            if (Image == null) return new Point();
+            PointF result = PointToRawImageF(point);
+            return new Point((int)result.X, (int)result.Y);
+        }
+        /// <summary>
+        /// 将 Canva 上的坐标转换为原图像坐标。
+        /// </summary>
+        /// <param name="point"></param>
+        /// <returns></returns>
+        protected PointF PointToRawImageF(Point point)
+        {
+            if (Image == null) return new PointF();
 
             point = PicBox.PointToClient(PointToScreen(point));
-            return new Point(Image.Width * point.X / PicBox.ClientSize.Width, Image.Height * point.Y / PicBox.ClientSize.Height);
+            return new PointF((float)Image.Width * point.X / PicBox.ClientSize.Width, (float)Image.Height * point.Y / PicBox.ClientSize.Height);
         }
         /// <summary>
         /// 将原图像坐标转换为 Canva 上的坐标。
@@ -216,10 +229,20 @@ namespace WhAnno.Anno
         /// <returns></returns>
         protected Point PointToCanvaClient(Point point)
         {
+            return PointFToCanvaClient(point);
+        }
+        /// <summary>
+        /// 将原图像坐标转换为 Canva 上的坐标。
+        /// </summary>
+        /// <param name="point"></param>
+        /// <returns></returns>
+        protected Point PointFToCanvaClient(PointF point)
+        {
             if (Image == null) return new Point();
 
-            point = new Point(PicBox.ClientSize.Width * point.X / Image.Width, PicBox.ClientSize.Height * point.Y / Image.Height);
-            return PointToClient(PicBox.PointToScreen(point));
+            point = new PointF(PicBox.ClientSize.Width * point.X / Image.Width, PicBox.ClientSize.Height * point.Y / Image.Height);
+            Point result = new Point((int)point.X, (int)point.Y);
+            return PointToClient(PicBox.PointToScreen(result));
         }
 
     }

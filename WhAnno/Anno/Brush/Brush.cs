@@ -10,11 +10,11 @@ using WhAnno.Anno.Base;
 
 namespace WhAnno.Anno.Base
 {
-    class BrushBase : PictureBox
+    abstract class BrushBase : PictureBox
     {
         public BrushBase()
         {
-            //BorderStyle = BorderStyle.FixedSingle;
+
         }
 
     }
