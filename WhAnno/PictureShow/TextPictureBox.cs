@@ -4,7 +4,6 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -70,11 +69,7 @@ namespace WhAnno.PictureShow
             Image?.Dispose();
             //异步读取图像文件
             //Image更改会自动触发重绘
-            Image = await Task.Run(() =>
-            {
-                Thread.Sleep(1000);
-                return new Bitmap(filePath);
-            });
+            Image = await Task.Run(() => new Bitmap(filePath));
         }
 
         protected override void OnPaint(PaintEventArgs pe)

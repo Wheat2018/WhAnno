@@ -36,6 +36,12 @@ namespace WhAnno
         private void MainForm_Load(object sender, EventArgs e)
         {
             {
+                toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
+                toolStripProgressBar1.Visible = false;
+                //注册消息打印
+                MessagePrint.SolveMessage += PrintStatus;
+            }
+            {
                 textPicturePannel.Dock = DockStyle.Right;
                 textPicturePannel.Width = 200;
             }
@@ -54,37 +60,40 @@ namespace WhAnno
                 canva.Dock = DockStyle.Left;
                 textPicturePannel.SelectedIndexChanged += (_sender, _item, _e) => canva.Image = _item.Image;
             }
-            {
-                toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
-            }
-            MessagePrint.SolveMessage += PrintStatus;
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            //移除消息打印
+            MessagePrint.SolveMessage -= PrintStatus;
+            base.OnClosed(e);
         }
 
         private void PrintStatus(string describe, object data)
         {
             //事件调用该函数，执行线程并不是创建状态栏控件的线程
             //需将打印任务交给创建状态栏的线程，否则可能出现异常
-            try
+            Invoke(new Action(() =>
             {
-                BeginInvoke(new Action(() =>
+                try
                 {
+                    if (!CanFocus) return;
                     switch (describe)
                     {
                         case "progress":
                             toolStripProgressBar1.Visible = true;
                             toolStripProgressBar1.Value = (int)data;
-                            statusStrip1.Refresh();
                             if (toolStripProgressBar1.Value == 100)
                             {
                                 toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Green);
                                 //延时一段时间后将进度条设为不可见
-                                _ = AsyncProcess.Delay(1000, () =>
+                                AsyncProcess.Delay(1000, () =>
                                 {
-                                     Invoke(new Action(() => 
-                                     { 
-                                         toolStripProgressBar1.Visible = false;
-                                         toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
-                                     }));
+                                    Invoke(new Action(() =>
+                                    {
+                                        toolStripProgressBar1.Visible = false;
+                                        toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
+                                    }));
                                 });
                             }
                             break;
@@ -101,12 +110,12 @@ namespace WhAnno
                             toolStripStatusLabel4.Text = data as string;
                             break;
                     }
-                }));
-            }
-            catch (Exception e)
-            {
-                MessagePrint.Add("exception", e.Message);
-            }
+                }
+                catch (Exception ex)
+                {
+                    MessagePrint.Add("exception", ex.Message);
+                }
+            }));
         }
 
         private void 工作区ToolStripMenuItem_Click(object sender, EventArgs e)
@@ -139,7 +148,7 @@ namespace WhAnno
                 int count = 0;
                 foreach (FileInfo file in files)
                 {
-                    //Invoke调用一个异步Lambda，将立即返回，且发出异步线程处理。
+                    //Invoke调用一个异步Lambda，将很快返回，且发出异步线程处理。
                     //因此，该循环短时间内并发出与文件数相同的异步线程数，进行
                     //包含IO操作的图像加载过程。
                     Invoke(new Action(async () =>
@@ -178,6 +187,8 @@ namespace WhAnno
             annoFileDialog.Title = "载入标注文本文件";
             if (annoFileDialog.ShowDialog() == DialogResult.OK)
             {
+                AnnoLoaderForm annoLoaderForm = new AnnoLoaderForm(annoFileDialog.FileName);
+                annoLoaderForm.ShowDialog();
             }
         }
 

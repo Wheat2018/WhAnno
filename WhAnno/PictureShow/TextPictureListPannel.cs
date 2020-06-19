@@ -37,8 +37,8 @@ namespace WhAnno.PictureShow
         public async Task AddAsync(string picFilePath)
         {
             TextPictureBox textPictureBox = new TextPictureBox();
-            await textPictureBox.SetPictureAsync(picFilePath);
             Add(textPictureBox);
+            await textPictureBox.SetPictureAsync(picFilePath);
         }
 
         /// <summary>

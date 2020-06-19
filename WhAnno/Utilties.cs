@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Security.Policy;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +18,7 @@ namespace WhAnno
         /// <summary>
         /// 消息类
         /// </summary>
-        struct Message
+        private struct Message
         {
             public string describe;
             public object data;
@@ -64,6 +65,13 @@ namespace WhAnno
         }
 
         /// <summary>
+        /// 使用主调方线程立即处理待打印消息。
+        /// </summary>
+        /// <param name="describe"></param>
+        /// <param name="data"></param>
+        public static void Apply(string describe, object data) => OnSolveMessage(describe, data);
+
+        /// <summary>
         /// 引发 MessagePrint.SolveMessage 事件。
         /// </summary>
         /// <param name="describe">消息归类</param>
@@ -96,22 +104,23 @@ namespace WhAnno
         /// 异步并发出新线程处理任务。
         /// </summary>
         /// <param name="action">要处理的任务</param>
-        public async static Task Now(Action action)
+        public async static void Now(Action action, Action callback = null)
         {
             await Task.Run(action);
+            callback?.Invoke();
         }
         /// <summary>
         /// 异步并发出新线程，线程在毫秒级延时后处理任务。
         /// </summary>
         /// <param name="millisecondsDelay">延时毫秒数</param>
         /// <param name="action">要处理的任务</param>
-        public async static Task Delay(int millisecondsDelay, Action action)
+        public static void Delay(int millisecondsDelay, Action action, Action callback = null)
         {
-            await Now(() =>
+            Now(() =>
             {
                 Thread.Sleep(millisecondsDelay);
                 action();
-            });
+            },callback);
         }
     }
 
@@ -134,11 +143,11 @@ namespace WhAnno
     public static class SystemScorllBar
     {
         /// <summary>
-        /// 系统垂直滚动条宽度
+        /// 获取系统垂直滚动条宽度
         /// </summary>
         public static int VerticalWidth { get => SystemInformation.VerticalScrollBarWidth; }
         /// <summary>
-        /// 系统水平滚动条高度
+        /// 获取系统水平滚动条高度
         /// </summary>
         public static int HorizonHeight { get => SystemInformation.HorizontalScrollBarHeight; }
     }
