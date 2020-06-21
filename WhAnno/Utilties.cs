@@ -60,6 +60,7 @@ namespace WhAnno
                     }
                 }
             }
+
             messages.Enqueue(new Message(describe, data));
             thread_suspend.Set();
         }
@@ -106,8 +107,16 @@ namespace WhAnno
         /// <param name="action">要处理的任务</param>
         public async static void Now(Action action, Action callback = null)
         {
-            await Task.Run(action);
-            callback?.Invoke();
+            try
+            {
+
+                await Task.Run(action);
+                callback?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                MessagePrint.Add("exception", ex.Message);
+            }
         }
         /// <summary>
         /// 异步并发出新线程，线程在毫秒级延时后处理任务。
@@ -122,6 +131,109 @@ namespace WhAnno
                 action();
             },callback);
         }
+    }
+
+    /// <summary>
+    /// 使用单个专有线程异步处理任务
+    /// </summary>
+    public class UniqueAsyncProcess : IDisposable
+    {
+        /// <summary>
+        /// 用于UniqueAsyncProcess的处理任务委托，委托请求传入一个会实时刷新的
+        /// 布尔值。任务应当在会消耗大量时间的语句块中不断判断该布尔值，并在检
+        /// 测到布尔值为true时尽快结束任务。
+        /// </summary>
+        /// <param name="shouldBreak">是否需要尽快结束任务</param>
+        public delegate void UniqueHandle(ref bool shouldBreak);
+
+        //Methods
+        /// <summary>
+        /// 默认构造。
+        /// </summary>
+        public UniqueAsyncProcess()
+        {
+            thread = new Thread(new ThreadStart(Run));
+            thread.Name = "AsyncProcess Unique Thread";
+            thread.Priority = ThreadPriority.Normal;
+            thread.IsBackground = true;
+            thread.Start();
+        }
+
+        /// <summary>
+        /// 请求上个任务尽快结束，并安排任务进行处理。若在下一次调用本方法前，
+        /// 本次安排的任务还未得到执行，则本次任务会被取消。
+        /// </summary>
+        /// <param name="action">待处理任务</param>
+        public void Add(UniqueHandle action)
+        {
+            RequireEnd();
+            Interlocked.Exchange(ref nextHandle, action);
+            thread_suspend.Set();
+        }
+
+        /// <summary>
+        /// 请求上个任务尽快结束。
+        /// </summary>
+        public void RequireEnd()
+        {
+            lock (shouldBreakLock)
+            {
+                shouldBreak = true;
+            }
+        }
+
+        #region IDisposable
+        /// <summary>
+        /// 在执行完当前任务后销毁线程，不再执行后续任务。
+        /// </summary>
+        public void Dispose()
+        {
+            exit = true;
+            RequireEnd();
+            thread_suspend.Set();
+            thread.Join();
+        }
+        #endregion
+
+        //Implement Details
+        private Thread thread = null;
+        private AutoResetEvent thread_suspend = new AutoResetEvent(false);
+        private bool exit = false;
+
+        public bool shouldBreak = false;
+        public object shouldBreakLock = new object();
+
+        private UniqueHandle nextHandle = null;
+
+        /// <summary>
+        /// 处理任务线程主函数。
+        /// </summary>
+        private void Run()
+        {
+            while (!exit)
+            {
+                if (nextHandle != null)
+                {
+                    lock (shouldBreakLock)
+                    {
+                        shouldBreak = false;
+                    }
+                    UniqueHandle nowHandle = nextHandle;
+                    Interlocked.Exchange(ref nextHandle, null);
+                    try
+                    {
+                        nowHandle(ref shouldBreak);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessagePrint.Add("exception", ex.Message);
+                    }
+                }
+                else if (!exit)
+                    thread_suspend.WaitOne();
+            }
+        }
+
     }
 
     public static class ParentMouse
@@ -206,6 +318,32 @@ namespace WhAnno
         public static void SetColor(this ProgressBar bar, ProgressBarColor color)
         {
             SendMessage(bar.Handle, 1040, (IntPtr)color, IntPtr.Zero);
+        }
+    }
+
+    /// <summary>
+    /// 为string拓展一些方法
+    /// </summary>
+    public static class StringMethod
+    {
+        /// <summary>
+        /// 获取目标索引的字符在整个字符串中位于第几行(Y)第几列(X)。
+        /// </summary>
+        /// <param name="str">字符串实例</param>
+        /// <param name="index">目标索引</param>
+        /// <returns></returns>
+        public static Point CoorOf(this string str, int index)
+        {
+            int rows = 0, feedPoint = 0;
+            for (int i = 0; i < index; i++)
+            {
+                if (str[i] == '\n')
+                {
+                    rows++;
+                    feedPoint = i;
+                }
+            }
+            return new Point(index - feedPoint, rows);
         }
     }
 }

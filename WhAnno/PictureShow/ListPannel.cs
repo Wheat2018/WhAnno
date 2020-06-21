@@ -28,19 +28,33 @@ namespace WhAnno.PictureShow
         /// </summary>
         public int Groups { get; set; } = 1;
         /// <summary>
-        /// 获取当前选中索引。
+        /// 获取或设置当前选中索引，未选中项时返回-1。
         /// </summary>
-        public int Index { get => IndexOf(CurrentItem); }
+        public int Index 
+        {
+            get
+            {
+                if (CurrentItem != null)
+                    return IndexOf(CurrentItem);
+                else
+                    return -1;
+            }
+            set
+            {
+                if (value >= 0 && value < Count)
+                    Select(GetItem(value));
+            }
+        }
         /// <summary>
         /// 获取或设置绘制项的纵横比，默认为1.
         /// </summary>
         public float Aspect { get; set; } = 1;
         /// <summary>
-        /// 获取当前选中项。
+        /// 获取当前选中项，未选中项时返回null。
         /// </summary>
         public ItemType CurrentItem { get; private set; } = default;
         /// <summary>
-        /// 获取上次选中项。
+        /// 获取上次选中项，上次未选中项时返回null。。
         /// </summary>
         public ItemType LastItem { get; private set; } = default;
         /// <summary>
@@ -428,8 +442,8 @@ namespace WhAnno.PictureShow
         }
 
         //Private Implement Details
-        private void NextIndex() => Select(GetItem((Index + 1) % Count));
-        private void PrevIndex() => Select(GetItem((Items.Count + Index - 1) % Count));
+        private void NextIndex() => Index = (Index + 1) % Count;
+        private void PrevIndex() => Index = (Items.Count + Index - 1) % Count;
 
     }
 }

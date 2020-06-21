@@ -16,14 +16,14 @@ namespace WhAnno.Anno
         /// </summary>
         public Image Image 
         {
-            get => PicBox.Image;
+            get => PictureBox.Image;
             set
             {
                 OnImageChanging(new EventArgs());
                 //此处必须创建image的副本。因为Image类会为Bitmap动图创建某种线程，
                 //而多次传递Image实例，会导致动图绑定多个线程，造成卡顿和跳帧。
-                PicBox.Image?.Dispose();
-                PicBox.Image = value.Clone() as Image;
+                PictureBox.Image?.Dispose();
+                PictureBox.Image = value.Clone() as Image;
                 ImageBounds = ImageZoomDefaultBounds;
                 OnImageChanged(new EventArgs());
             }
@@ -31,15 +31,15 @@ namespace WhAnno.Anno
         /// <summary>
         /// 显示图像边界，由 ImageLocation 和 ImageSize 组成。
         /// </summary>
-        public Rectangle ImageBounds { get => PicBox.Bounds; set => PicBox.Bounds = value; }
+        public Rectangle ImageBounds { get => PictureBox.Bounds; set => PictureBox.Bounds = value; }
         /// <summary>
         /// 显示图像位置
         /// </summary>
-        public Point ImageLocation { get => PicBox.Location; set => PicBox.Location = value; }
+        public Point ImageLocation { get => PictureBox.Location; set => PictureBox.Location = value; }
         /// <summary>
         /// 显示图像大小。
         /// </summary>
-        public Size ImageSize { get => PicBox.Size; set => PicBox.Size = value; }
+        public Size ImageSize { get => PictureBox.Size; set => PictureBox.Size = value; }
         /// <summary>
         /// 显示图像相对原图的放缩比。依赖于 ImageSize 和 Image.Size，
         /// 若PicBox边框非None，比例会有误差。
@@ -56,7 +56,7 @@ namespace WhAnno.Anno
         /// <summary>
         /// 图像控件
         /// </summary>
-        protected PictureBox PicBox { get; set; } = new PictureBox();
+        public PictureBox PictureBox { get; private set; } = new PictureBox();
 
         //Event
         /// <summary>
@@ -71,18 +71,18 @@ namespace WhAnno.Anno
         public Canva()
         {
             BorderStyle = BorderStyle.FixedSingle;
-            Controls.Add(PicBox);
-            PicBox.SizeMode = PictureBoxSizeMode.StretchImage;
-            PicBox.MouseDown += (sender, e) => OnMouseDown(ParentMouse.Get(this, sender, e));
-            PicBox.MouseMove += (sender, e) => OnMouseMove(ParentMouse.Get(this, sender, e));
-            PicBox.MouseUp += (sender, e) => OnMouseUp(ParentMouse.Get(this, sender, e));
+            Controls.Add(PictureBox);
+            PictureBox.SizeMode = PictureBoxSizeMode.StretchImage;
+            PictureBox.MouseDown += (sender, e) => OnMouseDown(ParentMouse.Get(this, sender, e));
+            PictureBox.MouseMove += (sender, e) => OnMouseMove(ParentMouse.Get(this, sender, e));
+            PictureBox.MouseUp += (sender, e) => OnMouseUp(ParentMouse.Get(this, sender, e));
         }
 
         public void ResetImageBounds()
         {
-            if (PicBox.Image == null) return;
+            if (PictureBox.Image == null) return;
 
-            PicBox.Bounds = new Rectangle();
+            PictureBox.Bounds = new Rectangle();
         }
 
         //Overridable
@@ -126,7 +126,7 @@ namespace WhAnno.Anno
 
         protected override void OnResize(EventArgs eventargs)
         {
-            MessagePrint.Add("info", "Bound" + Image?.Size.ToString() + PicBox.ClientSize.ToString());
+            MessagePrint.Add("info", "Bound" + Image?.Size.ToString() + PictureBox.ClientSize.ToString());
             base.OnResize(eventargs);
         }
 
@@ -219,8 +219,8 @@ namespace WhAnno.Anno
         {
             if (Image == null) return new PointF();
 
-            point = PicBox.PointToClient(PointToScreen(point));
-            return new PointF((float)Image.Width * point.X / PicBox.ClientSize.Width, (float)Image.Height * point.Y / PicBox.ClientSize.Height);
+            point = PictureBox.PointToClient(PointToScreen(point));
+            return new PointF((float)Image.Width * point.X / PictureBox.ClientSize.Width, (float)Image.Height * point.Y / PictureBox.ClientSize.Height);
         }
         /// <summary>
         /// 将原图像坐标转换为 Canva 上的坐标。
@@ -240,9 +240,9 @@ namespace WhAnno.Anno
         {
             if (Image == null) return new Point();
 
-            point = new PointF(PicBox.ClientSize.Width * point.X / Image.Width, PicBox.ClientSize.Height * point.Y / Image.Height);
+            point = new PointF(PictureBox.ClientSize.Width * point.X / Image.Width, PictureBox.ClientSize.Height * point.Y / Image.Height);
             Point result = new Point((int)point.X, (int)point.Y);
-            return PointToClient(PicBox.PointToScreen(result));
+            return PointToClient(PictureBox.PointToScreen(result));
         }
 
     }

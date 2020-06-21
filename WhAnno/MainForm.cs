@@ -48,12 +48,9 @@ namespace WhAnno
             {
                 brushListPanel.Dock = DockStyle.Right;
                 brushListPanel.Width = 30;
-                foreach (Type item in Assembly.GetExecutingAssembly().GetTypes())
+                foreach (Type item in BrushBase.GetTypes())
                 {
-                    if (item.FullName.Contains("WhAnno.Anno.Brush."))
-                    {
-                        brushListPanel.Add(Assembly.GetExecutingAssembly().CreateInstance(item.FullName) as BrushBase);
-                    }
+                    brushListPanel.Add(Assembly.GetExecutingAssembly().CreateInstance(item.FullName) as BrushBase);
                 }
             }
             {
@@ -62,18 +59,18 @@ namespace WhAnno
             }
         }
 
-        protected override void OnClosed(EventArgs e)
+        protected override void OnClosing(CancelEventArgs e)
         {
             //移除消息打印
             MessagePrint.SolveMessage -= PrintStatus;
-            base.OnClosed(e);
+            base.OnClosing(e);
         }
 
         private void PrintStatus(string describe, object data)
         {
             //事件调用该函数，执行线程并不是创建状态栏控件的线程
             //需将打印任务交给创建状态栏的线程，否则可能出现异常
-            Invoke(new Action(() =>
+            BeginInvoke(new Action(() =>
             {
                 try
                 {
@@ -189,6 +186,7 @@ namespace WhAnno
             {
                 AnnoLoaderForm annoLoaderForm = new AnnoLoaderForm(annoFileDialog.FileName);
                 annoLoaderForm.ShowDialog();
+                annoLoaderForm.Dispose();
             }
         }
 
