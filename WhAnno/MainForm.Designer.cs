@@ -50,6 +50,7 @@
             this.toolStripStatusLabel3 = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel4 = new System.Windows.Forms.ToolStripStatusLabel();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.label1 = new System.Windows.Forms.Label();
             this.pictureBox6 = new System.Windows.Forms.PictureBox();
             this.worksapceFolderDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.annoFileDialog = new System.Windows.Forms.OpenFileDialog();
@@ -72,7 +73,7 @@
             this.文件ToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(800, 28);
+            this.menuStrip1.Size = new System.Drawing.Size(800, 30);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -84,7 +85,7 @@
             this.退出ToolStripMenuItem,
             this.testToolStripMenuItem});
             this.文件ToolStripMenuItem.Name = "文件ToolStripMenuItem";
-            this.文件ToolStripMenuItem.Size = new System.Drawing.Size(53, 24);
+            this.文件ToolStripMenuItem.Size = new System.Drawing.Size(53, 26);
             this.文件ToolStripMenuItem.Text = "文件";
             // 
             // 打开工作区ToolStripMenuItem
@@ -127,7 +128,7 @@
             this.testToolStripMenuItem.Name = "testToolStripMenuItem";
             this.testToolStripMenuItem.Size = new System.Drawing.Size(122, 26);
             this.testToolStripMenuItem.Text = "test";
-            this.testToolStripMenuItem.Click += new System.EventHandler(this.testToolStripMenuItem_Click);
+            this.testToolStripMenuItem.Click += new System.EventHandler(this.TestToolStripMenuItem_Click);
             // 
             // flowLayoutPanel1
             // 
@@ -193,9 +194,9 @@
             this.toolStripStatusLabel2,
             this.toolStripStatusLabel3,
             this.toolStripStatusLabel4});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 427);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 426);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(800, 23);
+            this.statusStrip1.Size = new System.Drawing.Size(800, 24);
             this.statusStrip1.TabIndex = 4;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -207,39 +208,52 @@
             // toolStripStatusLabel1
             // 
             this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 16);
+            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 18);
             // 
             // toolStripStatusLabel2
             // 
             this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-            this.toolStripStatusLabel2.Size = new System.Drawing.Size(0, 16);
+            this.toolStripStatusLabel2.Size = new System.Drawing.Size(0, 18);
             // 
             // toolStripStatusLabel3
             // 
             this.toolStripStatusLabel3.Name = "toolStripStatusLabel3";
-            this.toolStripStatusLabel3.Size = new System.Drawing.Size(0, 16);
+            this.toolStripStatusLabel3.Size = new System.Drawing.Size(0, 18);
             // 
             // toolStripStatusLabel4
             // 
             this.toolStripStatusLabel4.Name = "toolStripStatusLabel4";
-            this.toolStripStatusLabel4.Size = new System.Drawing.Size(0, 16);
+            this.toolStripStatusLabel4.Size = new System.Drawing.Size(0, 18);
             // 
             // panel1
             // 
             this.panel1.AutoScroll = true;
             this.panel1.AutoScrollMargin = new System.Drawing.Size(0, 10);
+            this.panel1.BackColor = System.Drawing.SystemColors.Control;
+            this.panel1.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("panel1.BackgroundImage")));
+            this.panel1.Controls.Add(this.label1);
             this.panel1.Controls.Add(this.pictureBox6);
             this.panel1.Controls.Add(this.pictureBox5);
-            this.panel1.Location = new System.Drawing.Point(223, 274);
+            this.panel1.Location = new System.Drawing.Point(254, 285);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(234, 110);
             this.panel1.TabIndex = 5;
+            // 
+            // label1
+            // 
+            this.label1.BackColor = System.Drawing.Color.Transparent;
+            this.label1.ForeColor = System.Drawing.SystemColors.ControlText;
+            this.label1.Location = new System.Drawing.Point(111, 2);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(37, 28);
+            this.label1.TabIndex = 6;
+            this.label1.Text = "label1";
             // 
             // pictureBox6
             // 
             this.pictureBox6.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pictureBox6.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox6.Image")));
-            this.pictureBox6.Location = new System.Drawing.Point(0, 72);
+            this.pictureBox6.Location = new System.Drawing.Point(10, 33);
             this.pictureBox6.Name = "pictureBox6";
             this.pictureBox6.Size = new System.Drawing.Size(200, 66);
             this.pictureBox6.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -253,8 +267,8 @@
             this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.menuStrip1);
             this.Controls.Add(this.statusStrip1);
-            this.Controls.Add(this.panel1);
             this.Controls.Add(this.flowLayoutPanel1);
+            this.Controls.Add(this.panel1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MainForm";
@@ -303,6 +317,7 @@
         private System.Windows.Forms.FolderBrowserDialog worksapceFolderDialog;
         private System.Windows.Forms.OpenFileDialog annoFileDialog;
         private System.Windows.Forms.ToolStripMenuItem testToolStripMenuItem;
+        private System.Windows.Forms.Label label1;
     }
 }
 

@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WhAnno.Anno;
+using WhAnno.Utils;
 using WhAnno.Anno.Base;
 
 namespace WhAnno
@@ -21,9 +22,9 @@ namespace WhAnno
         private readonly string AnnoFilePath;
         private string FileContext;
 
-        private BrushListPannel brushListPanel = new BrushListPannel();
+        private readonly BrushListPannel brushListPanel = new BrushListPannel();
 
-        private UniqueAsyncProcess UniqueAsyncProcess = new UniqueAsyncProcess();
+        private readonly UniqueAsyncProcess UniqueAsyncProcess = new UniqueAsyncProcess();
         public AnnoLoaderForm(string annoFilePath)
         {
             AnnoFilePath = annoFilePath;
@@ -46,7 +47,7 @@ namespace WhAnno
             {
                 brushListPanel.Dock = DockStyle.Left;
                 brushListPanel.Width = 30;
-                foreach (Type item in BrushBase.GetTypes())
+                foreach (Type item in BrushBase.GetBrushTypes())
                 {
                     brushListPanel.Add(Assembly.GetExecutingAssembly().CreateInstance(item.FullName) as BrushBase);
                 }
@@ -105,8 +106,8 @@ namespace WhAnno
         {
             //移除消息打印
             MessagePrint.SolveMessage -= PrintStatus;
-            //销毁UniqueAsyncProcess
-            UniqueAsyncProcess.Dispose();
+            //结束UniqueAsyncProcess
+            UniqueAsyncProcess.End();
             base.OnClosing(e);
         }
 
@@ -153,7 +154,7 @@ namespace WhAnno
             }));
         }
 
-        private void textBox2_TextChanged(object sender, EventArgs e)
+        private void TextBox2_TextChanged(object sender, EventArgs e)
         {
             textBox3.Text = "";
             UniqueAsyncProcess.Add(CalRegex);
@@ -162,8 +163,8 @@ namespace WhAnno
         /// <summary>
         /// 计算正则表达式并写入textBox3中
         /// </summary>
-        /// <param name="shouldBreak"></param>
-        private void CalRegex(ref bool shouldBreak)
+        /// <param name="abort"></param>
+        private void CalRegex(UniqueAsyncProcess.ProcessAbort abort)
         {
             try
             {
@@ -181,9 +182,9 @@ namespace WhAnno
                     int progress = 0;
                     for (int i = 0; i < realCount; i++)
                     {
-                        if (shouldBreak) return;
+                        if (abort()) return;
                         matchResult.Append(matches[i].Value.Replace("\n",@"\n") + "\r\n");
-                        FieldInfo[] fields = BrushBase.GetAnnoFieldsOf(brushListPanel.CurrentItem.GetType());
+                        FieldInfo[] fields = brushListPanel.CurrentItem.AnnoFields;
                         for (int j = 0; j < fields.Length; j++)
                         {
                             if (j + 1 < patterns.Length)

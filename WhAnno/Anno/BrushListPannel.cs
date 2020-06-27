@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WhAnno.Utils;
 using WhAnno.Anno.Base;
 using WhAnno.PictureShow;
 
@@ -15,7 +16,7 @@ namespace WhAnno.Anno
         /// <summary>
         /// 禁用ListPanel的动态工作区大小功能
         /// </summary>
-        protected override Size MinClientSize { get => MaxClientSize; }
+        protected override Size MinClientSize => MaxClientSize;
         /// <summary>
         /// 每个项之间的间隔（相对于每项最佳区域大小）的倒数，默认为1/8。
         /// </summary>

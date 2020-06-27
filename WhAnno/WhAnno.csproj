@@ -61,6 +61,7 @@
     <Compile Include="Anno\Brush\Brush.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Anno\Brush\ICoorConverter.cs" />
     <Compile Include="Anno\Canva.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -70,7 +71,7 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="PictureShow\ListPannel.cs">
+    <Compile Include="Utils\ListPannel.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="PictureShow\TextPictureListPannel.cs">
@@ -81,7 +82,7 @@
     <Compile Include="PictureShow\TextPictureBox.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Utilties.cs" />
+    <Compile Include="Utils\Utilties.cs" />
     <EmbeddedResource Include="Anno\AnnoLoaderForm.resx">
       <DependentUpon>AnnoLoaderForm.cs</DependentUpon>
     </EmbeddedResource>

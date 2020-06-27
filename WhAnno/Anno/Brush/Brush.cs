@@ -1,5 +1,7 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
@@ -7,16 +9,62 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WhAnno.Utils;
 using WhAnno.Anno.Base;
 
 namespace WhAnno.Anno.Base
 {
+    /// <summary>
+    /// 定义画笔类的共有特性及约束，提供一些适用于所有画笔类的静态方法。
+    /// </summary>
     abstract class BrushBase : PictureBox
     {
-        public BrushBase()
-        {
+        //Properties
+        /// <summary>
+        /// 获取本画笔类型的标注类型。
+        /// </summary>
+        public Type AnnoType => GetAnnoTypeOf(GetType());
 
-        }
+        /// <summary>
+        /// 获取本画笔类型的标注类型的所有公共字段。
+        /// </summary>
+        public FieldInfo[] AnnoFields => AnnoType.GetFields();
+
+        /// <summary>
+        /// 获取或设置所有画笔的默认钢笔。
+        /// </summary>
+        public static Pen DefaultPen { get; set; } = new Pen(Color.Black, 2);
+
+        /// <summary>
+        /// 获取或设置所有画笔的默认字体。
+        /// </summary>
+        public static new Font DefaultFont { get; set; } = new Font("宋体", 9);
+
+        //Fields
+        /// <summary>
+        /// 绘制标注时所用的GDI+钢笔。
+        /// </summary>
+        public Pen pen = DefaultPen;
+        /// <summary>
+        /// 绘制标注时所用的字体。
+        /// </summary>
+        public Font font = DefaultFont;
+
+        //To Implement
+        /// <summary>
+        /// 给定GDI+绘图图面和标注实例，将实例绘制到指定图面中。
+        /// </summary>
+        /// <param name="g">GDI+绘图图面</param>
+        /// <param name="anno">标注实例</param>
+        /// <param name="cvt">坐标变换规则</param>
+        /// 
+        public abstract void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null);
+
+        //Methods
+        /// <summary>
+        /// 默认构造。规定了画笔的Icon在更改大小时必须重绘。
+        /// </summary>
+        public BrushBase() => SetStyle(ControlStyles.ResizeRedraw, true);
 
         //Static Methods
         /// <summary>
@@ -33,7 +81,7 @@ namespace WhAnno.Anno.Base
         /// 获取所有画笔类型，即WhAnno.Anno.Brush命名空间下继承了BrushBase的类型。
         /// </summary>
         /// <returns></returns>
-        public static Type[] GetTypes()
+        public static Type[] GetBrushTypes()
         {
             List<Type> types = new List<Type>();
             foreach (Type item in Assembly.GetExecutingAssembly().GetTypes())
@@ -57,40 +105,51 @@ namespace WhAnno.Anno.Base
             return null;
         }
 
-        /// <summary>
-        /// 获取目标画笔类型的标注类型中所有公共字段。若所给类型没有标注类型或所给非
-        /// 画笔类型，都会返回null；若所给类型标注类型没有公共字段，则返回空数组。
-        /// </summary>
-        /// <param name="brushType"></param>
-        /// <returns></returns>
-        public static FieldInfo[] GetAnnoFieldsOf(Type brushType)
-        {
-            Type annoType = GetAnnoTypeOf(brushType);
-            if (annoType != null)
-            {
-                return annoType.GetFields();
-            }
-            return null;
-        }
     }
 }
 
+/// <summary>
+/// WhAnno画笔命名空间。该命名空间下的类名与System.Drawing下
+/// 的类名高度重叠，通常不建议使用该命名空间。
+/// </summary>
 namespace WhAnno.Anno.Brush
 {
     class Rectangle : BrushBase
     {
-        struct Annotation
+        /// <summary>
+        /// 标注类型。
+        /// </summary>
+        public struct Annotation
         {
             public string file;
             public int x, y, width, height;
+            public string category;
         }
+
+        //Properties
+        /// <summary>
+        /// 绘制画笔图标的线条宽度。
+        /// </summary>
         public int IconLineWidth { get; set; } = 2;
 
-        protected override void OnResize(EventArgs e)
+        //Abstract Implement
+        public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
         {
-            Invalidate();
-            base.OnResize(e);
+            Annotation annotation = (Annotation)anno;
+            g.SmoothingMode = SmoothingMode.HighQuality;
+
+            //将矩形转换成点数组
+            System.Drawing.Point[] rect = new System.Drawing.Rectangle(
+                annotation.x, annotation.y, annotation.width, annotation.height).ConvertToQuadraPoints();
+
+            //转换坐标
+            if (cvt != null)
+                for (int i = 0; i < rect.Length; i++) rect[i] = cvt.Convert(rect[i]);
+
+            g.DrawPolygon(pen, rect);
         }
+
+        //Icon Paint
         protected override void OnPaint(PaintEventArgs pe)
         {
             pe.Graphics.SmoothingMode = SmoothingMode.HighQuality;
@@ -100,17 +159,41 @@ namespace WhAnno.Anno.Brush
             pe.Graphics.DrawRectangle(new Pen(ForeColor, IconLineWidth), rect);
             base.OnPaint(pe);
         }
+
     }
 
     class Ellipse : BrushBase
     {
+        /// <summary>
+        /// 标注类型。
+        /// </summary>
+        public struct Annotation
+        {
+            public string file;
+            public float major_axis_radius;
+            public float minor_axis_radius;
+            public float angle;
+            public float center_x;
+            public float center_y;
+            public string category;
+        }
+
+        //Properties
+        /// <summary>
+        /// 绘制画笔图标的线条宽度。
+        /// </summary>
         public int IconLineWidth { get; set; } = 2;
 
-        protected override void OnResize(EventArgs e)
+        //Abstract Implement
+        public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
         {
-            Invalidate();
-            base.OnResize(e);
+            Annotation annotation = (Annotation)anno;
+            g.SmoothingMode = SmoothingMode.HighQuality;
+
+            throw new NotImplementedException();
         }
+
+        //Icon Paint
         protected override void OnPaint(PaintEventArgs pe)
         {
             pe.Graphics.SmoothingMode = SmoothingMode.HighQuality;
@@ -120,17 +203,34 @@ namespace WhAnno.Anno.Brush
             pe.Graphics.DrawEllipse(new Pen(ForeColor, IconLineWidth), rect);
             base.OnPaint(pe);
         }
+
     }
 
     class Point : BrushBase
     {
+        /// <summary>
+        /// 标注类型。
+        /// </summary>
+        public struct Annotation
+        {
+            public string file;
+            public int x, y;
+            public string category;
+        }
+
+        //Properties
+        /// <summary>
+        /// 绘制画笔图标的线条宽度。
+        /// </summary>
         public int IconLineWidth { get; set; } = 2;
 
-        protected override void OnResize(EventArgs e)
+        //Abstract Implement
+        public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
         {
-            Invalidate();
-            base.OnResize(e);
+            throw new NotImplementedException();
         }
+
+        //Icon Paint
         protected override void OnPaint(PaintEventArgs pe)
         {
             pe.Graphics.SmoothingMode = SmoothingMode.HighQuality;

@@ -8,21 +8,21 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WhAnno.PictureShow
+namespace WhAnno.Utils
 {
-    public enum FlowMode
-        {
-            Horizon, Vertical
-        }
+    public enum FlowMode { Horizon, Vertical }
 
+    /// <summary>
+    /// 具有自动排版功能的列表框。每一项必须继承自Control，以便列表框可以对齐进行排版。
+    /// </summary>
+    /// <typeparam name="ItemType"></typeparam>
     class ListPannel<ItemType> : FlowLayoutPanel where ItemType: Control
     {
-
         //Properties
         /// <summary>
         /// 获取项总数。
         /// </summary>
-        public int Count { get => Items.Count; }
+        public int Count => Items.Count;
         /// <summary>
         /// 分组数。
         /// </summary>
@@ -30,7 +30,7 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 获取或设置当前选中索引，未选中项时返回-1。
         /// </summary>
-        public int Index 
+        public int Index
         {
             get
             {
@@ -63,12 +63,12 @@ namespace WhAnno.PictureShow
         public FlowMode FlowMode
         { 
             get => WrapContents == true ? FlowMode.Vertical : FlowMode.Horizon;
-            set => WrapContents = (value == FlowMode.Vertical ? true : false);
+            set => WrapContents = value == FlowMode.Vertical;
         }
         /// <summary>
         /// 所有项
         /// </summary>
-        public ControlCollection Items { get => Controls; }
+        public ControlCollection Items => Controls;
 
         //Event
         public delegate void ItemEventHandle(object sender, ItemType item, EventArgs e);

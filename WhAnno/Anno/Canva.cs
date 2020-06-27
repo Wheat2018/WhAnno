@@ -5,58 +5,80 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WhAnno.Utils;
+using WhAnno.Anno.Base;
+using System.Drawing.Imaging;
+using System.Threading;
 
 namespace WhAnno.Anno
 {
-    class Canva : Panel
+    class Canva : Panel, ICoorConverter
     {
         //Properties
         /// <summary>
-        /// 显示的图像
+        /// 显示的图像。
         /// </summary>
         public Image Image 
         {
-            get => PictureBox.Image;
+            get => image;
             set
             {
                 OnImageChanging(new EventArgs());
-                //此处必须创建image的副本。因为Image类会为Bitmap动图创建某种线程，
-                //而多次传递Image实例，会导致动图绑定多个线程，造成卡顿和跳帧。
-                PictureBox.Image?.Dispose();
-                PictureBox.Image = value.Clone() as Image;
-                ImageBounds = ImageZoomDefaultBounds;
+                image = value;
+                ResetImageBounds();
                 OnImageChanged(new EventArgs());
             }
         }
         /// <summary>
-        /// 显示图像边界，由 ImageLocation 和 ImageSize 组成。
+        /// 获取或设置显示图像边界，由 ImageLocation 和 ImageSize 组成。
         /// </summary>
-        public Rectangle ImageBounds { get => PictureBox.Bounds; set => PictureBox.Bounds = value; }
-        /// <summary>
-        /// 显示图像位置
-        /// </summary>
-        public Point ImageLocation { get => PictureBox.Location; set => PictureBox.Location = value; }
-        /// <summary>
-        /// 显示图像大小。
-        /// </summary>
-        public Size ImageSize { get => PictureBox.Size; set => PictureBox.Size = value; }
-        /// <summary>
-        /// 显示图像相对原图的放缩比。依赖于 ImageSize 和 Image.Size，
-        /// 若PicBox边框非None，比例会有误差。
-        /// </summary>
-        public SizeF ImageScale 
+        public Rectangle ImageBounds
         {
-            get => PreviewScaleFromSize(ImageSize);
+            get => new Rectangle(ImageLocation, ImageSize);
             set
             {
-                if (Image != null) ImageSize = PreviewSizeFromScale(value);
+                ImageLocation = value.Location;
+                ImageSize = value.Size;
+            }
+        }
+        /// <summary>
+        /// 获取或设置显示图像位置。
+        /// </summary>
+        public Point ImageLocation 
+        { 
+            get => imageLocation; 
+            set
+            {
+                imageLocation = value;
+                if (Image != null) Invalidate();
+            }
+        }
+        /// <summary>
+        /// 获取或设置显示图像大小。
+        /// </summary>
+        public Size ImageSize
+        {
+            get => imageSize;
+            set
+            {
+                imageSize = value;
+                if (Image != null) Invalidate();
             }
         }
 
         /// <summary>
-        /// 图像控件
+        /// 显示图像相对原图的放缩比。依赖于 ImageSize 和 Image.Size。
         /// </summary>
-        public PictureBox PictureBox { get; private set; } = new PictureBox();
+        public SizeF ImageScale
+        {
+            get => PreviewScaleFromSize(ImageSize);
+            set => ImageSize = PreviewSizeFromScale(value);
+        }
+
+        //Fields
+        private Image image = null;
+        private Point imageLocation = new Point();
+        private Size imageSize = new Size();
 
         //Event
         /// <summary>
@@ -70,20 +92,16 @@ namespace WhAnno.Anno
 
         public Canva()
         {
+            SetStyle(
+                ControlStyles.ResizeRedraw | 
+                ControlStyles.OptimizedDoubleBuffer | 
+                ControlStyles.AllPaintingInWmPaint | 
+                ControlStyles.UserPaint, 
+                true);
             BorderStyle = BorderStyle.FixedSingle;
-            Controls.Add(PictureBox);
-            PictureBox.SizeMode = PictureBoxSizeMode.StretchImage;
-            PictureBox.MouseDown += (sender, e) => OnMouseDown(ParentMouse.Get(this, sender, e));
-            PictureBox.MouseMove += (sender, e) => OnMouseMove(ParentMouse.Get(this, sender, e));
-            PictureBox.MouseUp += (sender, e) => OnMouseUp(ParentMouse.Get(this, sender, e));
         }
 
-        public void ResetImageBounds()
-        {
-            if (PictureBox.Image == null) return;
-
-            PictureBox.Bounds = new Rectangle();
-        }
+        public void ResetImageBounds() => ImageBounds = ImageZoomDefaultBounds;
 
         //Overridable
         /// <summary>
@@ -103,6 +121,19 @@ namespace WhAnno.Anno
             ImageChanged?.Invoke(this, e);
         }
 
+        protected override void OnPaint(PaintEventArgs pe)
+        {
+            if (Image != null) pe.Graphics.DrawImage(Image, ImageBounds);
+
+            pe.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+
+            Rectangle rect = new Rectangle(
+                ClientSize.Width / 6, ClientSize.Height / 4, ClientSize.Width * 2 / 3, ClientSize.Height / 2);
+            pe.Graphics.DrawRectangle(new Pen(ForeColor, 2), rect);
+
+            base.OnPaint(pe);
+        }
+
         //Override
         protected override void OnMouseDown(MouseEventArgs e)
         {
@@ -111,9 +142,12 @@ namespace WhAnno.Anno
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            MessagePrint.Add("info", "原始坐标：" + PointToRawImage(e.Location).ToString() + e.Location.ToString() + PointToCanvaClient(PointToRawImage(e.Location)).ToString());
-            if (Judge.MouseEvent.Left(e))
+            //MessagePrint.Add("info", "原始坐标：" + PointToRawImage(e.Location).ToString() + e.Location.ToString() + PointToCanvaClient(PointToRawImage(e.Location)).ToString());
+            if (Utils.Judge.MouseEvent.Left(e))
+            {
                 MessagePrint.Add("info", "Canva鼠标：" + e.Location.ToString() + ImageScale.ToString());
+
+            }
 
             base.OnMouseMove(e);
         }
@@ -126,7 +160,7 @@ namespace WhAnno.Anno
 
         protected override void OnResize(EventArgs eventargs)
         {
-            MessagePrint.Add("info", "Bound" + Image?.Size.ToString() + PictureBox.ClientSize.ToString());
+            MessagePrint.Add("info", "Bound" + Image?.Size.ToString() + ImageBounds.ToString());
             base.OnResize(eventargs);
         }
 
@@ -138,9 +172,10 @@ namespace WhAnno.Anno
         {
             PointF anchorPoint = PointToRawImageF(e.Location);
 
-            SizeF scale = new SizeF(ImageScale.Width * (1.0f + e.Delta / 1200f), ImageScale.Height * (1.0f + e.Delta / 1200f));
-            if (scale.Width > 0.1 && scale.Width < 20 &&
-                scale.Height > 0.1 && scale.Height < 20) 
+            float sca = ImageScale.Width * (1.0f + e.Delta / 1200f);
+            SizeF scale = new SizeF(sca, sca);
+            //if (scale.Width > 0.1 && scale.Width < 20 &&
+            //    scale.Height > 0.1 && scale.Height < 20) 
                 ImageScale = scale;
 
             Point anchorPointToClient = PointFToCanvaClient(anchorPoint);
@@ -151,7 +186,7 @@ namespace WhAnno.Anno
 
         //Implement Details
         /// <summary>
-        /// 以Zoom形式填充的图像控件大小。
+        /// 获取以Zoom形式填充的图像控件大小。
         /// </summary>
         protected Size ImageZoomSize
         {
@@ -166,7 +201,7 @@ namespace WhAnno.Anno
             }
         }
         /// <summary>
-        /// 以Zoom形式填充的图像控件默认边界框。
+        /// 获取以Zoom形式填充的图像控件默认边界框。
         /// </summary>
         protected Rectangle ImageZoomDefaultBounds
         {
@@ -177,6 +212,7 @@ namespace WhAnno.Anno
                 ImageZoomSize.Height
                 );
         }
+
         /// <summary>
         /// 预览按比例缩放后的图像大小。
         /// </summary>
@@ -186,11 +222,13 @@ namespace WhAnno.Anno
         {
             if (Image == null)
                 return new Size();
-            return new Size((int)(Image.Width * scale.Width), (int)(Image.Height * scale.Height));
+            Size result = new Size((int)(Image.Width * scale.Width), (int)(Image.Height * scale.Height));
+            if (result.Width < 1) result.Width = 1;
+            if (result.Height < 1) result.Height = 1;
+            return result;
         }
         /// <summary>
-        /// 预览目标大小相对原图像的放缩比。依赖于 ImageSize 和 Image.Size，
-        /// 若PicBox边框非None，比例会有误差。
+        /// 预览目标大小相对原图像的放缩比。依赖于 ImageSize 和 Image.Size.
         /// </summary>
         /// <param name="size"></param>
         /// <returns></returns>
@@ -200,6 +238,7 @@ namespace WhAnno.Anno
                 return new SizeF();
             return new SizeF((float)size.Width / Image.Width, (float)size.Height / Image.Height);
         }
+
         /// <summary>
         /// 将 Canva 上的坐标转换为原图像坐标。
         /// </summary>
@@ -219,8 +258,8 @@ namespace WhAnno.Anno
         {
             if (Image == null) return new PointF();
 
-            point = PictureBox.PointToClient(PointToScreen(point));
-            return new PointF((float)Image.Width * point.X / PictureBox.ClientSize.Width, (float)Image.Height * point.Y / PictureBox.ClientSize.Height);
+            point = new Point(point.X - ImageLocation.X, point.Y - ImageLocation.Y);
+            return new PointF((float)Image.Width * point.X / ImageSize.Width, (float)Image.Height * point.Y / ImageSize.Height);
         }
         /// <summary>
         /// 将原图像坐标转换为 Canva 上的坐标。
@@ -240,10 +279,12 @@ namespace WhAnno.Anno
         {
             if (Image == null) return new Point();
 
-            point = new PointF(PictureBox.ClientSize.Width * point.X / Image.Width, PictureBox.ClientSize.Height * point.Y / Image.Height);
+            point = new PointF(ImageSize.Width * point.X / Image.Width, ImageSize.Height * point.Y / Image.Height);
             Point result = new Point((int)point.X, (int)point.Y);
-            return PointToClient(PictureBox.PointToScreen(result));
+            return new Point(result.X + ImageLocation.X, result.Y + ImageLocation.Y);
         }
 
+        //Interface Implement
+        Point ICoorConverter.Convert(Point point) => PointToCanvaClient(point);
     }
 }

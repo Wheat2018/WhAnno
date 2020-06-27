@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WhAnno.Anno;
+using WhAnno.Utils;
 using WhAnno.Anno.Base;
 using WhAnno.PictureShow;
 
@@ -20,9 +21,9 @@ namespace WhAnno
     {
         string workspace;
 
-        private TextPictureListPannel textPicturePannel = new TextPictureListPannel();
-        private BrushListPannel brushListPanel = new BrushListPannel();
-        private Canva canva = new Canva();
+        private readonly TextPictureListPannel textPicturePannel = new TextPictureListPannel();
+        private readonly BrushListPannel brushListPanel = new BrushListPannel();
+        private readonly Canva canva = new Canva();
 
         public MainForm()
         {
@@ -48,13 +49,24 @@ namespace WhAnno
             {
                 brushListPanel.Dock = DockStyle.Right;
                 brushListPanel.Width = 30;
-                foreach (Type item in BrushBase.GetTypes())
+                foreach (Type item in BrushBase.GetBrushTypes())
                 {
                     brushListPanel.Add(Assembly.GetExecutingAssembly().CreateInstance(item.FullName) as BrushBase);
                 }
             }
             {
                 canva.Dock = DockStyle.Left;
+                canva.Paint += (_sender, _pe) =>
+                {
+                    Anno.Brush.Rectangle.Annotation annotation = new Anno.Brush.Rectangle.Annotation();
+                    annotation.x = 10;
+                    annotation.y = 10;
+                    annotation.width = 50;
+                    annotation.height = 50;
+
+                    if (brushListPanel.CurrentItem != null)
+                    brushListPanel.CurrentItem?.PaintAnno(_pe.Graphics, annotation, canva);
+                };
                 textPicturePannel.SelectedIndexChanged += (_sender, _item, _e) => canva.Image = _item.Image;
             }
         }
@@ -190,7 +202,7 @@ namespace WhAnno
             }
         }
 
-        private void testToolStripMenuItem_Click(object sender, EventArgs e)
+        private void TestToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Form form = new Form();
             form.ShowDialog();

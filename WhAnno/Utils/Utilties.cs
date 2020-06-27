@@ -11,7 +11,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WhAnno
+/// <summary>
+/// 提供一些实用的方法或控件。可以根据需求功能重新实现它们。
+/// </summary>
+namespace WhAnno.Utils
 {
     public static class MessagePrint
     {
@@ -29,9 +32,9 @@ namespace WhAnno
             }
         }
 
-        private static ConcurrentQueue<Message> messages = new ConcurrentQueue<Message>();
+        private static readonly ConcurrentQueue<Message> messages = new ConcurrentQueue<Message>();
         private static Thread thread = null;
-        private static AutoResetEvent thread_suspend = new AutoResetEvent(false);
+        private static readonly AutoResetEvent thread_suspend = new AutoResetEvent(false);
 
         public delegate void MessageSolveMethod(string describe, object data);
         /// <summary>
@@ -52,10 +55,12 @@ namespace WhAnno
                 {
                     if (thread == null)
                     {
-                        thread = new Thread(new ThreadStart(Solve));
-                        thread.Name = "MessagePrint Unique Thread";
-                        thread.Priority = ThreadPriority.Lowest;
-                        thread.IsBackground = true;
+                        thread = new Thread(new ThreadStart(Solve))
+                        {
+                            Name = "MessagePrint Unique Thread",
+                            Priority = ThreadPriority.Lowest,
+                            IsBackground = true
+                        };
                         thread.Start();
                     }
                 }
@@ -90,8 +95,7 @@ namespace WhAnno
         {
             while (true)
             {
-                Message message;
-                if (messages.TryDequeue(out message))
+                if (messages.TryDequeue(out Message message))
                     OnSolveMessage(message.describe, message.data);
                 else
                     thread_suspend.WaitOne();
@@ -139,12 +143,12 @@ namespace WhAnno
     public class UniqueAsyncProcess : IDisposable
     {
         /// <summary>
-        /// 用于UniqueAsyncProcess的处理任务委托，委托请求传入一个会实时刷新的
-        /// 布尔值。任务应当在会消耗大量时间的语句块中不断判断该布尔值，并在检
-        /// 测到布尔值为true时尽快结束任务。
+        /// 用于UniqueAsyncProcess的处理任务提前终止委托，委托指示了任务何时应当
+        /// 尽快终止。任务应当在会消耗大量时间的语句块中不断判断该委托返回值，并
+        /// 在检测到返回为true时尽快结束任务。
         /// </summary>
         /// <param name="shouldBreak">是否需要尽快结束任务</param>
-        public delegate void UniqueHandle(ref bool shouldBreak);
+        public delegate bool ProcessAbort();
 
         //Methods
         /// <summary>
@@ -152,10 +156,12 @@ namespace WhAnno
         /// </summary>
         public UniqueAsyncProcess()
         {
-            thread = new Thread(new ThreadStart(Run));
-            thread.Name = "AsyncProcess Unique Thread";
-            thread.Priority = ThreadPriority.Normal;
-            thread.IsBackground = true;
+            thread = new Thread(new ThreadStart(Run))
+            {
+                Name = "AsyncProcess Unique Thread",
+                Priority = ThreadPriority.Normal,
+                IsBackground = true
+            };
             thread.Start();
         }
 
@@ -164,7 +170,7 @@ namespace WhAnno
         /// 本次安排的任务还未得到执行，则本次任务会被取消。
         /// </summary>
         /// <param name="action">待处理任务</param>
-        public void Add(UniqueHandle action)
+        public void Add(Action<ProcessAbort> action)
         {
             RequireEnd();
             Interlocked.Exchange(ref nextHandle, action);
@@ -176,34 +182,33 @@ namespace WhAnno
         /// </summary>
         public void RequireEnd()
         {
-            lock (shouldBreakLock)
+            lock (abortLock)
             {
-                shouldBreak = true;
+                abort = true;
             }
         }
 
-        #region IDisposable
         /// <summary>
-        /// 在执行完当前任务后销毁线程，不再执行后续任务。
+        /// 在执行完当前任务后结束线程，不再执行后续任务。
         /// </summary>
-        public void Dispose()
+        public void End()
         {
             exit = true;
             RequireEnd();
             thread_suspend.Set();
             thread.Join();
         }
-        #endregion
 
         //Implement Details
-        private Thread thread = null;
-        private AutoResetEvent thread_suspend = new AutoResetEvent(false);
+        private readonly Thread thread;
+        private readonly AutoResetEvent thread_suspend = new AutoResetEvent(false);
         private bool exit = false;
 
-        public bool shouldBreak = false;
-        public object shouldBreakLock = new object();
+        private bool abort = false;
+        private object abortLock = new object();
 
-        private UniqueHandle nextHandle = null;
+        private Action<ProcessAbort> nextHandle = null;
+        private bool disposedValue;
 
         /// <summary>
         /// 处理任务线程主函数。
@@ -214,15 +219,15 @@ namespace WhAnno
             {
                 if (nextHandle != null)
                 {
-                    lock (shouldBreakLock)
+                    lock (abortLock)
                     {
-                        shouldBreak = false;
+                        abort = false;
                     }
-                    UniqueHandle nowHandle = nextHandle;
+                    Action<ProcessAbort> nowHandle = nextHandle;
                     Interlocked.Exchange(ref nextHandle, null);
                     try
                     {
-                        nowHandle(ref shouldBreak);
+                        nowHandle.Invoke(() => abort);
                     }
                     catch (Exception ex)
                     {
@@ -234,6 +239,38 @@ namespace WhAnno
             }
         }
 
+        #region IDisposable
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // TODO: 释放托管状态(托管对象)
+                    thread_suspend.Dispose();
+                }
+
+                // TODO: 释放未托管的资源(未托管的对象)并替代终结器
+                End();
+                // TODO: 将大型字段设置为 null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: 仅当“Dispose(bool disposing)”拥有用于释放未托管资源的代码时才替代终结器
+        ~UniqueAsyncProcess()
+        {
+            // 不要更改此代码。请将清理代码放入“Dispose(bool disposing)”方法中
+            Dispose(disposing: false);
+        }
+
+        public void Dispose()
+        {
+            // 不要更改此代码。请将清理代码放入“Dispose(bool disposing)”方法中
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 
     public static class ParentMouse
@@ -257,11 +294,12 @@ namespace WhAnno
         /// <summary>
         /// 获取系统垂直滚动条宽度
         /// </summary>
-        public static int VerticalWidth { get => SystemInformation.VerticalScrollBarWidth; }
+        public static int VerticalWidth => SystemInformation.VerticalScrollBarWidth;
+
         /// <summary>
         /// 获取系统水平滚动条高度
         /// </summary>
-        public static int HorizonHeight { get => SystemInformation.HorizontalScrollBarHeight; }
+        public static int HorizonHeight => SystemInformation.HorizontalScrollBarHeight;
     }
 
     namespace Judge
@@ -274,30 +312,23 @@ namespace WhAnno
             /// <typeparam name="EventType"></typeparam>
             /// <param name="e"></param>
             /// <returns></returns>
-            public static bool Left(EventArgs e)
-            {
-                return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left;
-            }
+            public static bool Left(EventArgs e) => e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left;
+
             /// <summary>
             /// 判断事件是否为鼠标右击事件
             /// </summary>
             /// <typeparam name="EventType"></typeparam>
             /// <param name="e"></param>
             /// <returns></returns>
-            public static bool Right(EventArgs e)
-            {
-                return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Right;
-            }
+            public static bool Right(EventArgs e) => e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Right;
+
             /// <summary>
             /// 判断事件是否为鼠标中击事件
             /// </summary>
             /// <typeparam name="EventType"></typeparam>
             /// <param name="e"></param>
             /// <returns></returns>
-            public static bool Middle(EventArgs e)
-            {
-                return e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Middle;
-            }
+            public static bool Middle(EventArgs e) => e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Middle;
         }
     }
 
@@ -344,6 +375,27 @@ namespace WhAnno
                 }
             }
             return new Point(index - feedPoint, rows);
+        }
+    }
+
+    /// <summary>
+    /// 为GDI+的Rectangle矩形类拓展一种转换方式。
+    /// </summary>
+    public static class RectangleConverter
+    {
+        /// <summary>
+        /// 将矩形按逆时针转换成四个点的数组
+        /// </summary>
+        /// <param name="rect">矩形实例</param>
+        /// <returns></returns>
+        public static Point[] ConvertToQuadraPoints(this Rectangle rect)
+        {
+            Point[] result = new Point[4];
+            result[0] = new Point(rect.X, rect.Y);
+            result[2] = new Point(rect.X + rect.Width, rect.Y + rect.Height);
+            result[1] = new Point(result[2].X, result[0].Y);
+            result[3] = new Point(result[0].X, result[2].Y);
+            return result;
         }
     }
 }

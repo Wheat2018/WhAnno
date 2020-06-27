@@ -86,7 +86,7 @@
             this.textBox2.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.textBox2.Size = new System.Drawing.Size(446, 276);
             this.textBox2.TabIndex = 3;
-            this.textBox2.TextChanged += new System.EventHandler(this.textBox2_TextChanged);
+            this.textBox2.TextChanged += new System.EventHandler(this.TextBox2_TextChanged);
             // 
             // textBox3
             // 
