@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using WhAnno.Utils;
 using WhAnno.Anno.Base;
+using System.Diagnostics;
 
 namespace WhAnno.Anno.Base
 {
@@ -21,14 +22,9 @@ namespace WhAnno.Anno.Base
     {
         //Properties
         /// <summary>
-        /// 获取本画笔类型的标注类型。
+        /// 获取本画笔类型的标注类型。（运行时确定）
         /// </summary>
         public Type AnnoType => GetAnnoTypeOf(GetType());
-
-        /// <summary>
-        /// 获取本画笔类型的标注类型的所有公共字段。
-        /// </summary>
-        public FieldInfo[] AnnoFields => AnnoType.GetFields();
 
         /// <summary>
         /// 获取或设置所有画笔的默认钢笔。
@@ -66,9 +62,38 @@ namespace WhAnno.Anno.Base
         /// </summary>
         public BrushBase() => SetStyle(ControlStyles.ResizeRedraw, true);
 
+        /// <summary>
+        /// 创建一个标注类型实例。
+        /// </summary>
+        /// <returns></returns>
+        public object CreatAnnotation() => Assembly.GetExecutingAssembly().CreateInstance(AnnoType.FullName);
+
+        /// <summary>
+        /// 创建一个标注类型实例。
+        /// </summary>
+        /// <param name="fields">指定的若干个字段名</param>
+        /// <param name="values">与给定字段名严格对应的字段值</param>
+        /// <returns></returns>
+        /// <remarks>
+        /// <paramref name="values"/>可以为实现了<see cref="IConvertible"/>的任意类型，方法自动将其转换为字段的真实类型，若转换失败，会抛出异常。
+        /// </remarks>
+        public object CreatAnnotation(FieldInfo[] fields, object[] values)
+        {
+            //静态断言：fields长度理应等于values长度
+            Debug.Assert(fields.Length == values.Length, $"fields长度({fields.Length})不等于values长度({values.Length})");
+
+            object annotation = CreatAnnotation();
+            for (int i = 0; i < fields.Length; i++)
+            {
+                if (values[i] == null) continue;
+                fields[i].SetValue(annotation, Convert.ChangeType(values[i], fields[i].FieldType));
+            }
+            return annotation;
+        }
+
         //Static Methods
         /// <summary>
-        /// 判断类型是否是画笔类型，即在WhAnno.Anno.Brush命名空间下并继承了BrushBase。
+        /// 判断类型是否是画笔类型，即在WhAnno.Anno.Brush命名空间下并继承了BrushBase。（运行时确定）
         /// </summary>
         /// <param name="type">目标类型</param>
         /// <returns></returns>
@@ -78,7 +103,17 @@ namespace WhAnno.Anno.Base
         }
 
         /// <summary>
-        /// 获取所有画笔类型，即WhAnno.Anno.Brush命名空间下继承了BrushBase的类型。
+        /// 判断类型是否是标注类型，即在WhAnno.Anno.Brush命名空间下名为"Annotation"的内嵌类型。
+        /// </summary>
+        /// <param name="type">目标类型</param>
+        /// <returns></returns>
+        public static bool IsAnnoType(Type type)
+        {
+            return type.FullName.Contains("WhAnno.Anno.Brush.") && type.FullName.TailContains("+Annotation");
+        }
+
+        /// <summary>
+        /// 获取所有画笔类型，即WhAnno.Anno.Brush命名空间下继承了BrushBase的类型。（运行时确定）
         /// </summary>
         /// <returns></returns>
         public static Type[] GetBrushTypes()
@@ -93,11 +128,13 @@ namespace WhAnno.Anno.Base
         }
 
         /// <summary>
-        /// 获取目标画笔类型的标注类型，标注类型是一种值类型。若所给类型内没有标注
-        /// 类型或所给非画笔类型，都会返回null。
+        /// 获取目标画笔类型的标注类型。
         /// </summary>
         /// <param name="brushType">目标画笔类型</param>
-        /// <returns></returns>
+        /// <returns>标注类型。若所给类型内没有标注类型或所给非画笔类型，为null。</returns>
+        /// <remarks>
+        /// 标注类型是一种值类型。
+        /// </remarks>
         public static Type GetAnnoTypeOf(Type brushType)
         {
             if (IsBrushType(brushType))
@@ -105,12 +142,42 @@ namespace WhAnno.Anno.Base
             return null;
         }
 
+        /// <summary>
+        /// 获取目标标注类型的画笔类型。
+        /// </summary>
+        /// <param name="annoType">标注类型</param>
+        /// <returns>画笔类型。若所给类型不是标注类型或没有对应画笔类型，为null。</returns>
+        public static Type GetBrushTypeOf(Type annoType)
+        {
+            if (IsAnnoType(annoType))
+                return Assembly.GetExecutingAssembly().GetType(
+                    annoType.FullName.Substring(0, annoType.FullName.IndexOf("+Annotation")));
+            return null;
+        }
+
+        /// <summary>
+        /// 获取给定标注实例的所有字段值。
+        /// </summary>
+        /// <param name="annotaion">标注实例</param>
+        /// <returns></returns>
+        /// <remarks>
+        /// 若所给实例不是标注类型，返回null
+        /// </remarks>
+        public static object[] GetAnnoFielsValues(object annotaion)
+        {
+            if (!IsAnnoType(annotaion.GetType())) return null;
+
+            FieldInfo[] fields = annotaion.GetType().GetFields();
+            object[] result = new object[fields.Length];
+            for (int i = 0; i < result.Length; i++)
+                result[i] = fields[i].GetValue(annotaion);
+            return result;
+        }
     }
 }
 
 /// <summary>
-/// WhAnno画笔命名空间。该命名空间下的类名与System.Drawing下
-/// 的类名高度重叠，通常不建议使用该命名空间。
+/// WhAnno画笔命名空间。该命名空间下的类名与System.Drawing下的类名高度重叠，通常不建议使用该命名空间。
 /// </summary>
 namespace WhAnno.Anno.Brush
 {

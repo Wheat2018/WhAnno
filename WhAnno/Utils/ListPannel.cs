@@ -13,9 +13,9 @@ namespace WhAnno.Utils
     public enum FlowMode { Horizon, Vertical }
 
     /// <summary>
-    /// 具有自动排版功能的列表框。每一项必须继承自Control，以便列表框可以对齐进行排版。
+    /// 具有自动排版功能的列表框。每一项必须继承自<see cref="Control"/>，以便列表框可以对齐进行排版。
     /// </summary>
-    /// <typeparam name="ItemType"></typeparam>
+    /// <typeparam name="ItemType">项类型：继承自<see cref="Control"/>的类型</typeparam>
     class ListPannel<ItemType> : FlowLayoutPanel where ItemType: Control
     {
         //Properties
@@ -251,7 +251,7 @@ namespace WhAnno.Utils
 
         //Overridable
         /// <summary>
-        /// 引发 ListPannel.SelectedIndexChanged 事件
+        /// 引发<see cref="SelectedIndexChanged"/>事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
@@ -262,21 +262,21 @@ namespace WhAnno.Utils
         }
 
         /// <summary>
-        /// 引发 ListPannel.ItemAdded 事件
+        /// 引发<see cref="ItemAdded"/>事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
         protected virtual void OnItemAdded(ItemType item, EventArgs e) => ItemAdded?.Invoke(this, item, e);
 
         /// <summary>
-        /// 引发 ListPannel.ItemRemoved 事件
+        /// 引发<see cref="ItemRemoved"/>事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
         protected virtual void OnItemRemoved(ItemType item, EventArgs e) => ItemRemoved?.Invoke(this, item, e);
 
         /// <summary>
-        /// 引发 ListPannel.ItemClick 事件
+        /// 引发<see cref="ItemClick"/>事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
@@ -287,21 +287,21 @@ namespace WhAnno.Utils
         }
 
         /// <summary>
-        /// 引发 ListPannel.ItemMouseEnter 事件
+        /// 引发<see cref="ItemMouseEnter"/>事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
         protected virtual void OnItemMouseEnter(ItemType item, EventArgs e) => ItemMouseEnter?.Invoke(this, item, e);
 
         /// <summary>
-        /// 引发 ListPannel.ItemMouseLeave 事件
+        /// 引发<see cref="ItemMouseLeave"/>事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
         protected virtual void OnItemMouseLeave(ItemType item, EventArgs e) => ItemMouseLeave?.Invoke(this, item, e);
 
         /// <summary>
-        /// 引发 ListPannel.ItemMouseHover 事件
+        /// 引发<see cref="ItemMouseHover"/>事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>

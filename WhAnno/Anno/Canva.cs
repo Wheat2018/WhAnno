@@ -30,7 +30,7 @@ namespace WhAnno.Anno
             }
         }
         /// <summary>
-        /// 获取或设置显示图像边界，由 ImageLocation 和 ImageSize 组成。
+        /// 获取或设置显示图像边界，由<see cref="ImageLocation"/>和<see cref="ImageSize"/>组成。
         /// </summary>
         public Rectangle ImageBounds
         {
@@ -67,7 +67,7 @@ namespace WhAnno.Anno
         }
 
         /// <summary>
-        /// 显示图像相对原图的放缩比。依赖于 ImageSize 和 Image.Size。
+        /// 显示图像相对原图的放缩比。依赖于<see cref="ImageSize"/>和<see cref="Image.Size"/>。
         /// </summary>
         public SizeF ImageScale
         {
@@ -99,6 +99,28 @@ namespace WhAnno.Anno
                 ControlStyles.UserPaint, 
                 true);
             BorderStyle = BorderStyle.FixedSingle;
+
+            //图像平移
+            MouseEventArgs mouseDownEventArgs = null;
+            Point imageLocation = default;
+            MouseDown += (sender, e) =>
+            {
+                mouseDownEventArgs = e;
+                imageLocation = ImageLocation;
+            };
+            MouseMove += (sender, e) =>
+            {
+                if (Utils.Judge.MouseEvent.Middle(e))
+                {
+                    Cursor = Cursors.SizeAll;
+                    Point delta = new Point(e.X - mouseDownEventArgs.X, e.Y - mouseDownEventArgs.Y);
+                    ImageLocation = new Point(imageLocation.X + delta.X, imageLocation.Y + delta.Y);
+                    MessagePrint.Add("info", "Delta：" + delta.ToString());
+                }
+                else
+                    Cursor = Cursors.Default;
+
+            };
         }
 
         public void ResetImageBounds() => ImageBounds = ImageZoomDefaultBounds;
@@ -135,35 +157,6 @@ namespace WhAnno.Anno
         }
 
         //Override
-        protected override void OnMouseDown(MouseEventArgs e)
-        {
-            base.OnMouseDown(e);
-        }
-
-        protected override void OnMouseMove(MouseEventArgs e)
-        {
-            //MessagePrint.Add("info", "原始坐标：" + PointToRawImage(e.Location).ToString() + e.Location.ToString() + PointToCanvaClient(PointToRawImage(e.Location)).ToString());
-            if (Utils.Judge.MouseEvent.Left(e))
-            {
-                MessagePrint.Add("info", "Canva鼠标：" + e.Location.ToString() + ImageScale.ToString());
-
-            }
-
-            base.OnMouseMove(e);
-        }
-
-        protected override void OnMouseUp(MouseEventArgs e)
-        {
-            MessagePrint.Add("", "MouseUp：" + e.Location.ToString());
-            base.OnMouseUp(e);
-        }
-
-        protected override void OnResize(EventArgs eventargs)
-        {
-            MessagePrint.Add("info", "Bound" + Image?.Size.ToString() + ImageBounds.ToString());
-            base.OnResize(eventargs);
-        }
-
         /// <summary>
         /// 图像缩放。
         /// </summary>
@@ -186,7 +179,7 @@ namespace WhAnno.Anno
 
         //Implement Details
         /// <summary>
-        /// 获取以Zoom形式填充的图像控件大小。
+        /// 获取以<see cref="PictureBoxSizeMode.Zoom"/>形式填充的图像控件大小。
         /// </summary>
         protected Size ImageZoomSize
         {
@@ -201,7 +194,7 @@ namespace WhAnno.Anno
             }
         }
         /// <summary>
-        /// 获取以Zoom形式填充的图像控件默认边界框。
+        /// 获取以<see cref="PictureBoxSizeMode.Zoom"/>形式填充的图像控件默认边界框。
         /// </summary>
         protected Rectangle ImageZoomDefaultBounds
         {
@@ -228,7 +221,7 @@ namespace WhAnno.Anno
             return result;
         }
         /// <summary>
-        /// 预览目标大小相对原图像的放缩比。依赖于 ImageSize 和 Image.Size.
+        /// 预览目标大小相对原图像的放缩比。依赖于<see cref="ImageSize"/>和<see cref="Image.Size"/>。
         /// </summary>
         /// <param name="size"></param>
         /// <returns></returns>
@@ -240,7 +233,7 @@ namespace WhAnno.Anno
         }
 
         /// <summary>
-        /// 将 Canva 上的坐标转换为原图像坐标。
+        /// 将<see cref="Canva"/>上的坐标转换为原图像坐标。
         /// </summary>
         /// <param name="point"></param>
         /// <returns></returns>
@@ -250,7 +243,7 @@ namespace WhAnno.Anno
             return new Point((int)result.X, (int)result.Y);
         }
         /// <summary>
-        /// 将 Canva 上的坐标转换为原图像坐标。
+        /// 将<see cref="Canva"/>上的坐标转换为原图像坐标。
         /// </summary>
         /// <param name="point"></param>
         /// <returns></returns>
@@ -262,7 +255,7 @@ namespace WhAnno.Anno
             return new PointF((float)Image.Width * point.X / ImageSize.Width, (float)Image.Height * point.Y / ImageSize.Height);
         }
         /// <summary>
-        /// 将原图像坐标转换为 Canva 上的坐标。
+        /// 将原图像坐标转换为<see cref="Canva"/>上的坐标。
         /// </summary>
         /// <param name="point"></param>
         /// <returns></returns>
@@ -271,7 +264,7 @@ namespace WhAnno.Anno
             return PointFToCanvaClient(point);
         }
         /// <summary>
-        /// 将原图像坐标转换为 Canva 上的坐标。
+        /// 将原图像坐标转换为<see cref="Canva"/>上的坐标。
         /// </summary>
         /// <param name="point"></param>
         /// <returns></returns>

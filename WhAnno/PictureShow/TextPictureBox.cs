@@ -79,6 +79,12 @@ namespace WhAnno.PictureShow
             float startX = 0;
             float startY = Height - size.Height;
             pe.Graphics.DrawString(FileName, paintFileNameFont, new SolidBrush(ForeColor), startX, startY);
+            using(SolidBrush brush = new SolidBrush(Color.FromArgb(150,Color.Orange)))
+            {
+                pe.Graphics.FillRectangle(brush,
+                    new RectangleF(new PointF(0, 0),
+                    pe.Graphics.MeasureString(Index.ToString(), paintIndexFont)));
+            }
             pe.Graphics.DrawString(Index.ToString(), paintIndexFont, new SolidBrush(ForeColor), 0, 0);
         }
     }

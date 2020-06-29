@@ -71,18 +71,18 @@ namespace WhAnno
             }
         }
 
-        protected override void OnClosing(CancelEventArgs e)
+        protected override void OnClosed(EventArgs e)
         {
             //移除消息打印
             MessagePrint.SolveMessage -= PrintStatus;
-            base.OnClosing(e);
+            base.OnClosed(e);
         }
 
         private void PrintStatus(string describe, object data)
         {
             //事件调用该函数，执行线程并不是创建状态栏控件的线程
             //需将打印任务交给创建状态栏的线程，否则可能出现异常
-            BeginInvoke(new Action(() =>
+            Action action = new Action(() =>
             {
                 try
                 {
@@ -95,15 +95,15 @@ namespace WhAnno
                             if (toolStripProgressBar1.Value == 100)
                             {
                                 toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Green);
-                                //延时一段时间后将进度条设为不可见
-                                AsyncProcess.Delay(1000, () =>
+                                //延时一段时间后将进度条设为不可见。（存在情况：一段时间后可能进度条已被销毁。此时抛出异常，无需处理）
+                                Process.Async.Delay(1000, () =>
                                 {
                                     Invoke(new Action(() =>
                                     {
                                         toolStripProgressBar1.Visible = false;
                                         toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
                                     }));
-                                });
+                                }, exception: Process.ExceptionHandleEnum.Ignore);
                             }
                             break;
                         case "status":
@@ -124,12 +124,15 @@ namespace WhAnno
                 {
                     MessagePrint.Add("exception", ex.Message);
                 }
-            }));
+            });
+            if (InvokeRequired) BeginInvoke(action);
+            else action();
+
         }
 
         private void 工作区ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            worksapceFolderDialog.Description = "选择标注工作区";
+            worksapceFolderDialog.Description = "选择标注工作区，加载其中.png|.gif|.jpg|.bmp|.jpeg|.wmf图像文件";
             if (worksapceFolderDialog.ShowDialog() == DialogResult.OK)
             {
                 MessagePrint.Add("status", "加载中");
@@ -144,6 +147,8 @@ namespace WhAnno
                         case ".gif":
                         case ".jpg":
                         case ".bmp":
+                        case ".jpeg":
+                        case ".wmf":
                             files.Add(file);
                             break;
                         default:
@@ -154,6 +159,7 @@ namespace WhAnno
                 textPicturePannel.Clear();
 
                 //异步加载所有图像，并发送进度消息。
+                MessagePrint.Progress progress = new MessagePrint.Progress(files.Count) { ProgressingFormatString = "已加载{0}%" };
                 int count = 0;
                 foreach (FileInfo file in files)
                 {
@@ -166,12 +172,7 @@ namespace WhAnno
                         await textPicturePannel.AddAsync(file.FullName);
                         //发送进度消息。
                         Interlocked.Increment(ref count);
-                        int progress = (int)((float)count / files.Count * 100);
-                        MessagePrint.Add("progress", progress);
-                        if (progress < 100)
-                            MessagePrint.Add("status", "加载中" + progress.ToString() + "%");
-                        else
-                            MessagePrint.Add("status", "就绪");
+                        progress.Report(count);
                     }));
                 }
 
