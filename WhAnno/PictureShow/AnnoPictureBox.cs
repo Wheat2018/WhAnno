@@ -1,24 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WhAnno.Anno.Base;
+using WhAnno.Utils;
 
 namespace WhAnno.PictureShow
 {
-    class TextPictureBox: PictureBox
+    class AnnoPictureBox: PictureBox
     {
+        //Properties
         /// <summary>
         /// 图片的文件名（不含后缀）。
         /// </summary>
-        public string FileName { get => Path.GetFileNameWithoutExtension(FilePath); }
+        public string FileName => Path.GetFileNameWithoutExtension(FilePath);
         /// <summary>
         /// 图片的全名。
         /// </summary>
-        public string FilePath { get; private set; }
+        public string FilePath { get => ImageLocation; set => ImageLocation = value; }
+        /// <summary>
+        /// 图片的标注。
+        /// </summary>
+        public List<object> Annotations { get; } = new List<object>();
         /// <summary>
         /// 要绘制的索引值。
         /// </summary>
@@ -38,23 +46,22 @@ namespace WhAnno.PictureShow
         public Font paintFileNameFont;
         public Font paintIndexFont;
 
-        public TextPictureBox()
+        public AnnoPictureBox()
         {
             SizeMode = PictureBoxSizeMode.Zoom;
             BorderStyle = BorderStyle.FixedSingle;
             paintFileNameFont = paintIndexFont = Font;
         }
 
-        public TextPictureBox(string filePath) : this() => SetPicture(filePath);
+        public AnnoPictureBox(string filePath) : this() => SetPicture(filePath);
 
         /// <summary>
         /// 加载图像。
         /// </summary>
-        /// <param name="filePath"></param>
+        /// <param name="filePath">文件路径</param>
         public void SetPicture(string filePath)
         {
             FilePath = filePath;
-            Image?.Dispose();
             //Image更改会自动触发重绘
             Image = new Bitmap(filePath);
         }
@@ -62,15 +69,28 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 异步加载图像。
         /// </summary>
-        /// <param name="filePath"></param>
-        public async Task SetPictureAsync(string filePath)
+        /// <param name="filePath">文件路径</param>
+        /// <param name="completeCallBack">异步加载完成的回调委托</param>
+        /// <remarks>图像I/O操作在异步线程上执行，完成时回调委托在主调方线程上排队执行。</remarks>
+        public async void SetPictureAsync(string filePath, Action completeCallBack = null)
         {
             FilePath = filePath;
-            Image?.Dispose();
             //异步读取图像文件
             //Image更改会自动触发重绘
-            Image = await Task.Run(() => new Bitmap(filePath));
+            Image = await Task.Run(Process.CatchAction(() =>
+            {
+                Bitmap bitmap = new Bitmap(filePath);
+                return bitmap.GetThumbnailImage(Width, Height, null, IntPtr.Zero);
+            }));
+            completeCallBack?.Invoke();
         }
+
+        //public bool CheckAnnotation(object annotation)
+        //{
+        //    if (!BrushBase.IsAnnoType(annotation.GetType())) return false;
+
+        //}
+
 
         protected override void OnPaint(PaintEventArgs pe)
         {

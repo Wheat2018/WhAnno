@@ -35,6 +35,9 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -62,7 +65,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Anno\Brush\ICoorConverter.cs" />
-    <Compile Include="Anno\Canva.cs">
+    <Compile Include="Canva\Canva.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="MainForm.cs">
@@ -71,15 +74,18 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Utils\DynamicListPannel.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Utils\ListPannel.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="PictureShow\TextPictureListPannel.cs">
+    <Compile Include="PictureShow\AnnoPictureListPannel.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PictureShow\TextPictureBox.cs">
+    <Compile Include="PictureShow\AnnoPictureBox.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Utils\Utilties.cs" />

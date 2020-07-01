@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -101,7 +102,14 @@ namespace WhAnno.Utils
         private static void OnSolveMessage(string describe, object data)
         {
             Console.WriteLine(describe + ":" + data?.ToString());
-            SolveMessage?.Invoke(describe, data);
+            try
+            {
+                SolveMessage?.Invoke(describe, data);
+            }
+            catch (Exception ex)
+            {
+                Process.CatchExceptionHandle?.Invoke(ex);
+            }
         }
 
         /// <summary>
@@ -154,6 +162,10 @@ namespace WhAnno.Utils
             /// </summary>
             public string ProgressedString { get; set; } = "就绪";
 
+            /// <summary>
+            /// 打印进度的回调委托。
+            /// </summary>
+            /// <remarks>默认为<see cref="Add(string, object)"/></remarks>
             public Action<string, object> Print { get; set; } = Add;
 
             //Fields
@@ -169,13 +181,13 @@ namespace WhAnno.Utils
             //Interface Implements
             public void Report(int value)
             {
-                int progress = value * MaxProgress / MaxValue;
+                int progress = MaxValue == 0 ? MaxProgress : value * MaxProgress / MaxValue;
                 if (progress == lastProgress) return;
                 Interlocked.Exchange(ref lastProgress, progress);
 
-                Print("progress", progress);
-                if (progress < MaxProgress) Print("status", string.Format(ProgressingFormatString, progress, value));
-                else Print("status", ProgressedString);
+                Print?.Invoke("progress", progress);
+                if (progress < MaxProgress) Print?.Invoke("status", string.Format(ProgressingFormatString, progress, value));
+                else Print?.Invoke("status", ProgressedString);
             }
         }
     }
@@ -191,13 +203,79 @@ namespace WhAnno.Utils
         public static Action<Exception> CatchExceptionHandle { set; get; } = (ex) => { MessagePrint.Add("exception", ex.Message); };
 
         /// <summary>
+        /// 生成异常安全（使用try-catch包围）的Action，并使用给定的方式处理异常。
+        /// </summary>
+        /// <param name="action">需要包围的委托</param>
+        /// <param name="exception">异常处理方式</param>
+        /// <returns></returns>
+        public static Action CatchAction(Action action, ExceptionHandleEnum exception = ExceptionHandleEnum.Catch)
+        {
+            if (action == null) return null;
+            return () =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    switch (exception)
+                    {
+                        case ExceptionHandleEnum.Throw:
+                            throw;
+                        case ExceptionHandleEnum.Catch:
+                            CatchExceptionHandle?.Invoke(ex);
+                            break;
+                        case ExceptionHandleEnum.Ignore:
+                            break;
+                    }
+                }
+            };
+        }
+        /// <summary>
+        /// 生成异常安全（使用try-catch包围）的带返回值Action，并使用给定的方式处理异常。
+        /// </summary>
+        /// <param name="action">需要包围的委托</param>
+        /// <param name="exception">异常处理方式</param>
+        /// <returns></returns>
+        public static Func<T> CatchAction<T>(Func<T> action, ExceptionHandleEnum exception = ExceptionHandleEnum.Catch)
+        {
+            if (action == null) return null;
+            return () =>
+            {
+                try
+                {
+                    return action();
+                }
+                catch (Exception ex)
+                {
+                    switch (exception)
+                    {
+                        case ExceptionHandleEnum.Throw:
+                            throw;
+                        case ExceptionHandleEnum.Catch:
+                            CatchExceptionHandle?.Invoke(ex);
+                            break;
+                        case ExceptionHandleEnum.Ignore:
+                            break;
+                    }
+                }
+                return default;
+            };
+        }
+
+
+        /// <summary>
         /// 处理任务提前终止委托，委托指示了任务何时应当尽快终止。任务应当在会消耗大量时间的语句块中不断判断该委托返回值，并在检测到返回为true时尽快结束任务。
         /// </summary>
         public delegate bool Abort();
 
         /// <summary>
-        /// 表示任务抛出异常时的处理方式
+        /// 表示任务抛出异常时的处理方式，带有该类型参数的函数，应当是异常安全的。
         /// </summary>
+        /// <remarks>
+        /// 尽管可以捕获基于<see cref="Exception"/>的全部异常，但某些调试器仍然会对某些异常触发中断（详情参考各调试器异常规则）。因此调试时的try-catch并不能完全保证程序不会被中断。
+        /// </remarks>
         public enum ExceptionHandleEnum
         {
             /// <summary>
@@ -225,27 +303,11 @@ namespace WhAnno.Utils
             /// <param name="action">要处理的任务</param>
             /// <param name="callback">处理完任务的回调方法</param>
             /// <param name="exception">异常处理方法</param>
-            public async static void Now(Action action, Action callback = null, ExceptionHandleEnum exception = ExceptionHandleEnum.Catch)
+            /// <remarks><paramref name="action"/>由异步线程执行，<paramref name="callback"/>由主调方线程排队执行。</remarks>
+            public async static Task Now(Action action, Action callback = null, ExceptionHandleEnum exception = ExceptionHandleEnum.Catch)
             {
-                try
-                {
-
-                    await Task.Run(action);
-                    callback?.Invoke();
-                }
-                catch (Exception ex)
-                {
-                    switch (exception)
-                    {
-                        case ExceptionHandleEnum.Throw:
-                            throw;
-                        case ExceptionHandleEnum.Catch:
-                            CatchExceptionHandle?.Invoke(ex);
-                            break;
-                        case ExceptionHandleEnum.Ignore:
-                            break;
-                    }
-                }
+                await Task.Run(CatchAction(action, exception));
+                CatchAction(callback, exception)?.Invoke();
             }
 
             /// <summary>
@@ -255,13 +317,28 @@ namespace WhAnno.Utils
             /// <param name="action">要处理的任务</param>
             /// <param name="callback">处理完任务的回调方法</param>
             /// <param name="exception">异常处理方法</param>
+            /// <remarks>延时和<paramref name="action"/>由异步线程执行，<paramref name="callback"/>由主调方线程排队执行。</remarks>
             public static void Delay(int millisecondsDelay, Action action, Action callback = null, ExceptionHandleEnum exception = ExceptionHandleEnum.Catch)
             {
-                Now(() =>
+                _ = Now(() =>
                 {
                     Thread.Sleep(millisecondsDelay);
-                    action();
+                    action?.Invoke();
                 }, callback, exception);
+            }
+
+            /// <summary>
+            /// 毫秒级延时后由主调方线程排队处理任务。
+            /// </summary>
+            /// <param name="millisecondsDelay">延时毫秒数</param>
+            /// <param name="action">要处理的任务</param>
+            /// <param name="exception">异常处理方法</param>
+            public async static void DelayInvoke(int millisecondsDelay, Action action, ExceptionHandleEnum exception = ExceptionHandleEnum.Catch)
+            {
+                await Now(() =>
+                {
+                    Thread.Sleep(millisecondsDelay);
+                }, action, exception);
             }
         }
 
@@ -331,7 +408,7 @@ namespace WhAnno.Utils
             private bool exit = false;
 
             private bool abort = false;
-            private object abortLock = new object();
+            private readonly object abortLock = new object();
 
             private Action<Abort> nextHandle = null;
             private bool disposedValue;
@@ -468,9 +545,12 @@ namespace WhAnno.Utils
         }
     }
 
+    /// <summary>
+    /// <see cref="ProgressBar"/>颜色。
+    /// </summary>
     public enum ProgressBarColor { Green = 1, Red, Yellow }
     /// <summary>
-    /// 拓展ProgressBar的SetColor方法
+    /// 拓展<see cref="ProgressBar"/>的SetColor方法
     /// </summary>
     public static class ModifyProgressBarColor
     {
@@ -489,9 +569,9 @@ namespace WhAnno.Utils
     }
 
     /// <summary>
-    /// 为string拓展一些方法
+    /// 为<see cref="string"/>拓展一些方法
     /// </summary>
-    public static class StringMethod
+    public static class StringMethods
     {
         /// <summary>
         /// 获取目标索引的字符在整个字符串中位于第几行(Y)第几列(X)。
@@ -526,18 +606,26 @@ namespace WhAnno.Utils
         }
 
         /// <summary>
-        /// 获得子数组，其中每个对象都为浅拷贝。
+        /// 获取字符串中每一行。
         /// </summary>
-        /// <param name="objs"></param>
-        /// <param name="startIndex"></param>
-        /// <param name="length"></param>
+        /// <param name="str"></param>
         /// <returns></returns>
-        public static T[] SubArray<T>(this T[] objs, int startIndex, int length)
+        public static string[] GetLines(this string str)
         {
-            T[] result = new T[length];
-            for (int i = 0; i < length; i++)
-                result[i] = objs[startIndex + i];
-            return result;
+            List<string> result = new List<string>();
+            int lastIndex = 0;
+            do
+            {
+                int index = str.IndexOf('\n', lastIndex);
+                if (index == -1)
+                {
+                    if (lastIndex <= str.Length) result.Add(str.Substring(lastIndex, str.Length - lastIndex));
+                    break;
+                }
+                result.Add(str.Substring(lastIndex, index - lastIndex));
+                lastIndex = index + 1;
+            } while (lastIndex <= str.Length);
+            return result.ToArray();
         }
 
         /// <summary>
@@ -561,7 +649,53 @@ namespace WhAnno.Utils
     }
 
     /// <summary>
-    /// 为GDI+的Rectangle矩形类拓展一种转换方式。
+    /// 为<see cref="Array"/>扩展一些方法
+    /// </summary>
+    public static class ArrayMethods
+    {
+        /// <summary>
+        /// 获取子数组，其中每个对象都为浅拷贝。
+        /// </summary>
+        /// <param name="objs"></param>
+        /// <param name="startIndex">起始索引值</param>
+        /// <param name="length">子数组长度</param>
+        /// <returns></returns>
+        public static T[] SubArray<T>(this T[] objs, int startIndex, int length)
+        {
+            T[] result = new T[length];
+            for (int i = 0; i < length; i++)
+                result[i] = objs[startIndex + i];
+            return result;
+        }
+
+        /// <summary>
+        /// 获取子数组，其中每个对象都为浅拷贝。
+        /// </summary>
+        /// <param name="objs"></param>
+        /// <param name="length">子数组长度</param>
+        /// <returns></returns>
+        public static T[] SubArray<T>(this T[] objs, int length) => objs.SubArray(0, length);
+
+        /// <summary>
+        /// 在一个一维数组中以特定比对方法搜索指定对象，并返回其首个匹配项的索引。
+        /// </summary>
+        /// <typeparam name="T">数组元素的类型。</typeparam>
+        /// <param name="array">要搜索的从零开始的一维数组。</param>
+        /// <param name="value">要在 array 中查找的对象。</param>
+        /// <param name="equals">比对两个对象是否相等的方法。</param>
+        /// <returns>如果在整个 array 中找到 value 的第一个匹配项，则为该项的从零开始的索引；否则为 -1。</returns>
+        /// <exception cref="ArgumentNullException">array 为 null。</exception>
+        public static int IndexOf<T>(T[] array, T value, Func<T, T, bool> equals)
+        {
+            if (array is null) throw new ArgumentException("array 为 null。");
+            for (int i = 0; i < array.Length; i++)
+                if (equals(array[i], value)) return i;
+            return -1;
+        }
+    }
+
+    /// <summary>
+    /// 为<see cref="Rectangle"/>矩形类拓展一种转换方式。
     /// </summary>
     public static class RectangleConverter
     {
@@ -578,6 +712,57 @@ namespace WhAnno.Utils
             result[1] = new Point(result[2].X, result[0].Y);
             result[3] = new Point(result[0].X, result[2].Y);
             return result;
+        }
+    }
+
+    /// <summary>
+    /// 字段排序方式。
+    /// </summary>
+    public enum FieldsOrder 
+    {
+        /// <summary>
+        /// 子类字段在前，基类字段在后。
+        /// </summary>
+        SubToBase = 0,
+        /// <summary>
+        /// 基类字段在前，子类字段在后。
+        /// </summary>
+        BaseToSub = 1
+    }
+    /// <summary>
+    /// 为<see cref="Type.GetFields"/>方法添加一种重载，支持返回的字段数组按照指定顺序排序。
+    /// </summary>
+    public static class TypeGetFields
+    {
+        public static FieldInfo[] GetFields(this Type type) => type.GetFields(FieldsOrder.BaseToSub);
+
+        /// <summary>
+        /// 按照指定排序顺序获取当前<see cref="Type"/>的所有字段
+        /// </summary>
+        /// <param name="type"><see cref="Type"/>实例</param>
+        /// <param name="order">排序方式</param>
+        /// <returns></returns>
+        public static FieldInfo[] GetFields(this Type type, FieldsOrder order)
+        {
+            if (order == FieldsOrder.SubToBase) return type.GetFields();
+
+            List<Type> tree = new List<Type>();
+            Type temp = type;
+            while(temp != null)
+            {
+                tree.Add(temp);
+                temp = temp.BaseType;
+            }
+            tree.Reverse();
+
+            List<FieldInfo> result = new List<FieldInfo>();
+            foreach (Type item in tree)
+            {
+                foreach (FieldInfo field in type.GetFields())
+                    if (field.DeclaringType == item)
+                        result.Add(field);
+            }
+            return result.ToArray();
         }
     }
 }

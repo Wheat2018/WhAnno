@@ -9,6 +9,7 @@ using WhAnno.Utils;
 using WhAnno.Anno.Base;
 using System.Drawing.Imaging;
 using System.Threading;
+using WhAnno.PictureShow;
 
 namespace WhAnno.Anno
 {
@@ -16,19 +17,25 @@ namespace WhAnno.Anno
     {
         //Properties
         /// <summary>
-        /// 显示的图像。
+        /// 与<see cref="Canva"/>绑定的<see cref="AnnoPictureBox"/>实例。
         /// </summary>
-        public Image Image 
+        public AnnoPictureBox AnnoPicture 
         {
-            get => image;
+            get => annoPicture;
             set
             {
                 OnImageChanging(new EventArgs());
-                image = value;
+                annoPicture = value;
                 ResetImageBounds();
                 OnImageChanged(new EventArgs());
             }
         }
+
+        /// <summary>
+        /// 显示的图像。
+        /// </summary>
+        public Image Image => AnnoPicture?.Image;
+
         /// <summary>
         /// 获取或设置显示图像边界，由<see cref="ImageLocation"/>和<see cref="ImageSize"/>组成。
         /// </summary>
@@ -74,9 +81,9 @@ namespace WhAnno.Anno
             get => PreviewScaleFromSize(ImageSize);
             set => ImageSize = PreviewSizeFromScale(value);
         }
-
+        
         //Fields
-        private Image image = null;
+        private AnnoPictureBox annoPicture = null;
         private Point imageLocation = new Point();
         private Size imageSize = new Size();
 

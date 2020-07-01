@@ -20,6 +20,8 @@ namespace WhAnno
 {
     public partial class AnnoLoaderForm : Form
     {
+        public string RegexText => textBox2.Text.Replace("\r\n", "\n");
+
         public object[] Annotations { get; private set; }
 
         private readonly string AnnoFilePath;
@@ -61,10 +63,10 @@ namespace WhAnno
                     listView1.Columns.Clear();
                     listView1.Groups.Clear();
                     listView1.Items.Clear();
-                    foreach (FieldInfo field in _item.AnnoType.GetFields())
-                    {
+
+                    foreach (FieldInfo field in _item.AnnoType.GetFields(FieldsOrder.BaseToSub))
                         listView1.Columns.Add($"{field.Name}<{field.FieldType.Name}>");
-                    }
+                    
                     listView1.AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize);
                     TextBox2_TextChanged(this, new EventArgs());
                 };
@@ -139,66 +141,91 @@ namespace WhAnno
 
         protected override void OnClosing(CancelEventArgs e)
         {
+            //通知UniqueAsyncProcess结束任务
+            UniqueAsyncProcess.RequireEnd();
             //询问是否返回数据
-            switch (MessageBox.Show("是否应用标注？", Text, MessageBoxButtons.YesNoCancel))
+            if (textBox2.Text.Length > 0)
             {
-                case DialogResult.Cancel:
-                    e.Cancel = true;
-                    break;
-                case DialogResult.Yes:
-                    string[] patterns = textBox2.Text.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                    MatchCollection matches = Regex.Matches(FileContext, patterns[0]);
-                    Annotations = GetAnnoFromRegex(brushListPanel.CurrentItem, matches.ToStringArray(),
-                                                   patterns.SubArray(1, patterns.Length - 1),
-                                                   progress: new MessagePrint.Progress() { Print = PrintStatus });
-                    break;
-                case DialogResult.No:
-                    break;
+                DialogResult = MessageBox.Show("是否应用标注？", Text, MessageBoxButtons.YesNoCancel);
+                switch (DialogResult)
+                {
+                    case DialogResult.Cancel:
+                        e.Cancel = true;
+                        break;
+                    case DialogResult.Yes:
+                        string[] patterns = RegexText.Split("\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                        MatchCollection matches = Regex.Matches(FileContext, patterns[0]);
+                        Annotations = GetAnnoFromRegex(brushListPanel.CurrentItem, matches.ToStringArray(),
+                                                       patterns.SubArray(1, patterns.Length - 1),
+                                                       brushListPanel.CurrentItem.AnnoType.GetFields(FieldsOrder.BaseToSub),
+                                                       progress: new MessagePrint.Progress() 
+                                                       {
+                                                           Print = PrintStatus,
+                                                           ProgressingFormatString = "计算中，完成{0}%"
+                                                       });
+                        break;
+                    case DialogResult.No:
+                        break;
+                }
             }
+
             base.OnClosing(e);
         }
 
         private void PrintStatus(string describe, object data)
         {
-            //事件调用该函数，执行线程并不是创建状态栏控件的线程
-            //需将打印任务交给创建状态栏的线程，否则可能出现异常
             Action action = new Action(() =>
             {
-                try
+                if (!CanFocus) return;
+                switch (describe)
                 {
-                    //if (!CanFocus) return;
-                    switch (describe)
-                    {
-                        case "progress":
-                            toolStripProgressBar1.Visible = true;
-                            toolStripProgressBar1.Value = (int)data;
-                            if (toolStripProgressBar1.Value == 100)
+                    case "progress":
+                        toolStripProgressBar1.Visible = true;
+                        toolStripProgressBar1.Value = (int)data;
+                        if (toolStripProgressBar1.Value == 100)
+                        {
+                            toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Green);
+                            //延时一段时间后将进度条设为不可见。（存在情况：一段时间后可能进度条已被销毁。此时抛出异常，无需处理）
+                            Process.Async.DelayInvoke(1000, () =>
                             {
-                                toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Green);
-                                //延时一段时间后将进度条设为不可见。（存在情况：一段时间后可能进度条已被销毁。此时抛出异常，无需处理）
-                                Process.Async.Delay(1000, () =>
-                                {
-                                    Invoke(new Action(() =>
-                                    {
-                                        toolStripProgressBar1.Visible = false;
-                                        toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
-                                    }));
-                                },exception: Process.ExceptionHandleEnum.Ignore);
-                            }
-                            break;
-                        case "status":
-                            toolStripStatusLabel1.Text = data as string;
-                            break;
-                        case "exception":
-                            toolStripStatusLabel2.Text = data as string;
-                            break;
-                    }
+                                if (toolStripProgressBar1.IsDisposed) return; //Fuck the debugger!
+                                toolStripProgressBar1.Visible = false;
+                                toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
+                            },exception: Process.ExceptionHandleEnum.Ignore);
+                        }
+                        break;
+                    case "status":
+                        toolStripStatusLabel1.Text = data as string;
+                        break;
+                    case "status delay":
+                        toolStripStatusLabel1.Text = data as string;
+                        //延时一段时间后清空文本。（存在情况：一段时间后可能文本框已被销毁。此时抛出异常，无需处理）
+                        Process.Async.DelayInvoke(1000, () => toolStripStatusLabel1.Text = "",
+                                                  exception: Process.ExceptionHandleEnum.Ignore);
+                        break;
+                    case "info":
+                        toolStripStatusLabel2.Text = data as string;
+                        break;
+                    case "info delay":
+                        //延时一段时间后清空文本。（存在情况：一段时间后可能文本框已被销毁。此时抛出异常，无需处理）
+                        toolStripStatusLabel2.Text = data as string;
+                        Process.Async.DelayInvoke(1000, () => toolStripStatusLabel2.Text = "",
+                                                  exception: Process.ExceptionHandleEnum.Ignore);
+                        break;
+                    case "exception":
+                        toolStripStatusLabel3.Text = "错误：" + data;
+                        break;
+                    case "exception delay":
+                        //延时一段时间后清空文本。（存在情况：一段时间后可能文本框已被销毁。此时抛出异常，无需处理）
+                        toolStripStatusLabel3.Text = "错误：" + data;
+                        Process.Async.DelayInvoke(1000, () => toolStripStatusLabel3.Text = "",
+                                                  exception: Process.ExceptionHandleEnum.Ignore);
+                        break;
                 }
-                catch (Exception ex)
-                {
-                    MessagePrint.Add("exception", ex.Message);
-                }
+                statusStrip1.Refresh();
             });
+            //事件调用该函数，执行线程可能并不是创建状态栏控件的线程
+            //需将打印任务交给创建状态栏的线程，否则可能引发异常
             if (InvokeRequired) BeginInvoke(action);
             else action();
         }
@@ -227,12 +254,8 @@ namespace WhAnno
                     //报告相关
                     MessagePrint.Add("status", "计算正则...");
 
-                    string[] patterns = textBox2.Text.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                    string[] patterns = RegexText.GetLines();
                     MatchCollection matches = Regex.Matches(FileContext, patterns[0]);
-
-                    //报告相关
-                    if(matches.Count > max)
-                        MessagePrint.Add("status", $"匹配项过多，加载前{max}项");
 
                     StringBuilder matchResult = new StringBuilder("");
                     int realCount = Math.Min(max, matches.Count);
@@ -244,6 +267,7 @@ namespace WhAnno
                         $"就绪 {realCount}/{matches.Count}个匹配项" : 
                         $"就绪 {matches.Count}个匹配项"
                     };
+                    if (matches.Count > max) MessagePrint.Add("info delay", $"匹配项过多，加载前{max}项");
 
                     ListViewGroup[] groups = new ListViewGroup[realCount];
                     for (int i = 0; i < realCount; i++)
@@ -251,25 +275,26 @@ namespace WhAnno
                         if (abort != null && abort()) return;
 
                         matchResult.Append(matches[i].Value.Replace("\n",@"\n") + "\r\n");
-                        object[] annos = GetAnnoFromRegex(brushListPanel.CurrentItem,
-                                                          new string[1] { matches[i].Value },
-                                                          patterns.SubArray(1, patterns.Length - 1),
-                                                          abort);
+                        FieldInfo[] fields = brushListPanel.CurrentItem.AnnoType.GetFields(FieldsOrder.BaseToSub);
+                        AnnotationBase[] annos = GetAnnoFromRegex(brushListPanel.CurrentItem,
+                                                                  new string[1] { matches[i].Value },
+                                                                  patterns.SubArray(1, patterns.Length - 1),
+                                                                  fields, abort);
                         if (annos == null) return;
 
                         ListViewGroup group = new ListViewGroup($"Match {i} ({annos.Length})");
-                        foreach (object anno in annos)
+                        foreach (AnnotationBase anno in annos)
                         {
-                            object[] values = BrushBase.GetAnnoFielsValues(anno);
-                            group.Items.Add(
-                                new ListViewItem(values.ToStringArray())
-                            );
+                            object[] values = anno.GetFieldsValues(fields);
+                            group.Items.Add(new ListViewItem(values.ToStringArray()));
                         }
                         groups[i] = group;
 
                         //报告相关
                         progress.Report(i + 1);
                     }
+                    //报告相关
+                    if (realCount == 0) progress.Report(progress.MaxValue);
 
                     Invoke(new Action(() =>
                     {
@@ -285,13 +310,11 @@ namespace WhAnno
                 }
                 else
                     MessagePrint.Add("status", "就绪");
-
-                MessagePrint.Add("exception", "");
             }
             catch (Exception ex)
             {
                 MessagePrint.Add("status", "正则计算错误");
-                MessagePrint.Add("exception", ex.Message);
+                MessagePrint.Add("exception delay", ex.Message);
             }
         }
 
@@ -299,8 +322,9 @@ namespace WhAnno
         /// 给定若干个字符串和若干个正则表达式，生成若干个标注实例。
         /// </summary>
         /// <param name="brush">用来确定标注类型的画笔类实例</param>
-        /// <param name="inputs">给定字符串</param>
+        /// <param name="inputs">给定字符串</param>\
         /// <param name="patterns">正则表达式</param>
+        /// <param name="fields">与正则表达式对应的字段</param>
         /// <param name="abort">提前终止条件</param>
         /// <param name="progress">进度报告</param>
         /// <returns>返回若干个标注实例</returns>
@@ -311,54 +335,54 @@ namespace WhAnno
         /// <para>3.若某个正则表达式匹配到1个结果，则n个标注实例的该字段都为该结果。</para>
         /// <para>4.若某个正则表达式匹配到1＜x＜n个结果，则前x个标注实例的该字段对应赋值，后(n-x)个标注实例该字段为空。</para>
         /// </remarks>
-        private object[] GetAnnoFromRegex(BrushBase brush, string[] inputs, string[] patterns,
+        private AnnotationBase[] GetAnnoFromRegex(BrushBase brush, string[] inputs, string[] patterns, FieldInfo[] fields = null,
                                           Process.Abort abort = null, IProgress<int> progress = null)
         {
-                if (brush == null) return null;
+            if (brush == null) return null;
+            if (fields == null) fields = brush.AnnoType.GetFields();
 
-                //标注类型的所有字段
-                FieldInfo[] fields = brush.AnnoType.GetFields();
-                //所有有效的正则表达式产生的匹配结果（集合长度等同于有效字段个数）
-                MatchCollection[] matches = new MatchCollection[Math.Min(fields.Length, patterns.Length)];
+            //所有有效的正则表达式产生的匹配结果（集合长度等同于有效字段个数）
+            MatchCollection[] matches = new MatchCollection[Math.Min(fields.Length, patterns.Length)];
 
-                ArrayList result = new ArrayList();
+            List<AnnotationBase> result = new List<AnnotationBase>();
 
-                foreach (string input in inputs)
+            foreach (string input in inputs)
+            {
+                if (abort != null && abort()) return null;
+
+                //正则匹配
+                int maxLength = 0;
+                for (int i = 0; i < matches.Length; i++)
+                {
+                    if (abort != null && abort()) return null;
+                    if (patterns[i].Length <= 0) continue;
+
+                    matches[i] = Regex.Matches(input, patterns[i]);
+                    if (matches[i].Count > maxLength) maxLength = matches[i].Count;
+                }
+
+
+                for (int i = 0; i < maxLength; i++)
                 {
                     if (abort != null && abort()) return null;
 
-                    //正则匹配
-                    int maxLength = 0;
-                    for (int i = 0; i < matches.Length; i++)
+                    object[] values = new object[fields.Length];
+                    for (int j = 0; j < values.Length; j++)
                     {
-                        if (abort != null && abort()) return null;
+                        if (j >= matches.Length || matches[j] == null) continue;
 
-                        matches[i] = Regex.Matches(input, patterns[i]);
-                        if (matches[i].Count > maxLength) maxLength = matches[i].Count;
+                        if (i < matches[j].Count)
+                            values[j] = matches[j][i].Value;
+                        else if (matches[j].Count == 1)
+                            values[j] = matches[j][0].Value;
                     }
-
-
-                    for (int i = 0; i < maxLength; i++)
-                    {
-                        if (abort != null && abort()) return null;
-
-                        object[] values = new object[fields.Length];
-                        for (int j = 0; j < values.Length; j++)
-                        {
-                            if (j >= matches.Length) continue;
-
-                            if (i < matches[j].Count)
-                                values[j] = matches[j][i].Value;
-                            else if (matches[j].Count == 1)
-                                values[j] = matches[j][0].Value;
-                        }
-                        result.Add(brush.CreatAnnotation(fields, values));
-                    }
-
-                    if (progress != null) progress.Report((Array.IndexOf(inputs, input) + 1) * 100 / inputs.Length);
+                    result.Add(brush.CreatAnnotation().SetFieldsValues(fields, values));
                 }
 
-                return result.ToArray();
+                if (progress != null) progress.Report((Array.IndexOf(inputs, input) + 1) * 100 / inputs.Length);
+            }
+
+            return result.ToArray();
         }
     }
 

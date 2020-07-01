@@ -10,7 +10,20 @@ using System.Windows.Forms;
 
 namespace WhAnno.Utils
 {
-    public enum FlowMode { Horizon, Vertical }
+    /// <summary>
+    /// <see cref="ListPannel{ItemType}"/>布局滚动方向。
+    /// </summary>
+    public enum FlowMode
+    { 
+        /// <summary>
+        /// 水平滚动。
+        /// </summary>
+        Horizon,
+        /// <summary>
+        /// 垂直滚动。
+        /// </summary>
+        Vertical 
+    }
 
     /// <summary>
     /// 具有自动排版功能的列表框。每一项必须继承自<see cref="Control"/>，以便列表框可以对齐进行排版。
@@ -52,11 +65,11 @@ namespace WhAnno.Utils
         /// <summary>
         /// 获取当前选中项，未选中项时返回null。
         /// </summary>
-        public ItemType CurrentItem { get; private set; } = default;
+        public ItemType CurrentItem { get; protected set; } = default;
         /// <summary>
         /// 获取上次选中项，上次未选中项时返回null。。
         /// </summary>
-        public ItemType LastItem { get; private set; } = default;
+        public ItemType LastItem { get; protected set; } = default;
         /// <summary>
         /// 获取或设置ListPanel的布局滚动方向
         /// </summary>
@@ -66,7 +79,7 @@ namespace WhAnno.Utils
             set => WrapContents = value == FlowMode.Vertical;
         }
         /// <summary>
-        /// 所有项
+        /// 所有项。
         /// </summary>
         public ControlCollection Items => Controls;
 
@@ -204,6 +217,16 @@ namespace WhAnno.Utils
         }
 
         /// <summary>
+        /// 添加项数组。
+        /// </summary>
+        /// <param name="items">项数组</param>
+        public void AddRange(ItemType[] items)
+        {
+            foreach (ItemType item in items)
+                Add(item);
+        }
+
+        /// <summary>
         /// 删除项。
         /// </summary>
         /// <param name="item"></param>
@@ -310,29 +333,11 @@ namespace WhAnno.Utils
         //Override
         protected override void OnLayout(LayoutEventArgs levent)
         {
-            if (Count > 0)
+            ForEachItem((item) =>
             {
-                bool autoScrollFlag = AutoScroll;
-                int hValue = 0, vValue = 0;
-                if (autoScrollFlag)
-                {
-                    hValue = HorizontalScroll.Value;
-                    vValue = VerticalScroll.Value;
-                    AutoScroll = false;
-                }
-                ForEachItem((item) =>
-                {
-                    item.Width = EachBestDisplaySize.Width - item.Margin.Left - item.Margin.Right;
-                    item.Height = EachBestDisplaySize.Height - item.Margin.Top - item.Margin.Bottom;
-                });
-
-                if (autoScrollFlag)
-                {
-                    AutoScroll = true;
-                    HorizontalScroll.Value = hValue;
-                    VerticalScroll.Value = vValue;
-                }
-            }
+                item.Width = EachBestDisplaySize.Width - item.Margin.Left - item.Margin.Right;
+                item.Height = EachBestDisplaySize.Height - item.Margin.Top - item.Margin.Bottom;
+            });
             base.OnLayout(levent);
         }
 
@@ -359,6 +364,7 @@ namespace WhAnno.Utils
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }
+
 
         //Implement Details
         /// <summary>
@@ -441,9 +447,16 @@ namespace WhAnno.Utils
             }
         }
 
-        //Private Implement Details
-        private void NextIndex() => Index = (Index + 1) % Count;
-        private void PrevIndex() => Index = (Items.Count + Index - 1) % Count;
+        /// <summary>
+        /// 选择下一项。
+        /// </summary>
+        /// <remarks>该方法在响应键盘方向键时被调用。</remarks>
+        protected void NextIndex() => Index = Math.Min(Index + 1, Count);
+        /// <summary>
+        /// 选择上一项。
+        /// </summary>
+        /// <remarks>该方法在响应键盘方向键时被调用。</remarks>
+        protected void PrevIndex() => Index = Math.Max(Index - 1, 0);
 
     }
 }

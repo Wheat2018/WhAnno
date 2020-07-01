@@ -21,13 +21,13 @@ namespace WhAnno
     {
         string workspace;
 
-        private readonly TextPictureListPannel textPicturePannel = new TextPictureListPannel();
+        private readonly AnnoPictureListPannel annoPicturePannel = new AnnoPictureListPannel();
         private readonly BrushListPannel brushListPanel = new BrushListPannel();
         private readonly Canva canva = new Canva();
 
         public MainForm()
         {
-            Controls.Add(textPicturePannel);
+            Controls.Add(annoPicturePannel);
             Controls.Add(canva);
             Controls.Add(brushListPanel);
 
@@ -43,8 +43,8 @@ namespace WhAnno
                 MessagePrint.SolveMessage += PrintStatus;
             }
             {
-                textPicturePannel.Dock = DockStyle.Right;
-                textPicturePannel.Width = 200;
+                annoPicturePannel.Dock = DockStyle.Right;
+                annoPicturePannel.Width = 200;
             }
             {
                 brushListPanel.Dock = DockStyle.Right;
@@ -58,16 +58,18 @@ namespace WhAnno
                 canva.Dock = DockStyle.Left;
                 canva.Paint += (_sender, _pe) =>
                 {
-                    Anno.Brush.Rectangle.Annotation annotation = new Anno.Brush.Rectangle.Annotation();
-                    annotation.x = 10;
-                    annotation.y = 10;
-                    annotation.width = 50;
-                    annotation.height = 50;
+                    Anno.Brush.Rectangle.Annotation annotation = new Anno.Brush.Rectangle.Annotation
+                    {
+                        x = 10,
+                        y = 10,
+                        width = 50,
+                        height = 50
+                    };
 
                     if (brushListPanel.CurrentItem != null)
                     brushListPanel.CurrentItem?.PaintAnno(_pe.Graphics, annotation, canva);
                 };
-                textPicturePannel.SelectedIndexChanged += (_sender, _item, _e) => canva.Image = _item.Image;
+                annoPicturePannel.SelectedIndexChanged += (_sender, _item, _e) => canva.AnnoPicture = _item;
             }
         }
 
@@ -80,51 +82,67 @@ namespace WhAnno
 
         private void PrintStatus(string describe, object data)
         {
-            //事件调用该函数，执行线程并不是创建状态栏控件的线程
-            //需将打印任务交给创建状态栏的线程，否则可能出现异常
             Action action = new Action(() =>
             {
-                try
+                if (!CanFocus) return;
+                switch (describe)
                 {
-                    if (!CanFocus) return;
-                    switch (describe)
-                    {
-                        case "progress":
-                            toolStripProgressBar1.Visible = true;
-                            toolStripProgressBar1.Value = (int)data;
-                            if (toolStripProgressBar1.Value == 100)
+                    case "progress":
+                        toolStripProgressBar1.Visible = true;
+                        toolStripProgressBar1.Value = (int)data;
+                        if (toolStripProgressBar1.Value == 100)
+                        {
+                            toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Green);
+                            //延时一段时间后将进度条设为不可见。（存在情况：一段时间后可能进度条已被销毁。此时抛出异常，无需处理）
+                            Process.Async.DelayInvoke(1000, () =>
                             {
-                                toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Green);
-                                //延时一段时间后将进度条设为不可见。（存在情况：一段时间后可能进度条已被销毁。此时抛出异常，无需处理）
-                                Process.Async.Delay(1000, () =>
-                                {
-                                    Invoke(new Action(() =>
-                                    {
-                                        toolStripProgressBar1.Visible = false;
-                                        toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
-                                    }));
-                                }, exception: Process.ExceptionHandleEnum.Ignore);
-                            }
-                            break;
-                        case "status":
-                            toolStripStatusLabel1.Text = data as string;
-                            break;
-                        case "info":
-                            toolStripStatusLabel2.Text = data as string;
-                            break;
-                        case "exception":
-                            toolStripStatusLabel3.Text = data as string;
-                            break;
-                        default:
-                            toolStripStatusLabel4.Text = data as string;
-                            break;
-                    }
+                                if (toolStripProgressBar1.IsDisposed) return; //Fuck the debugger!
+                                toolStripProgressBar1.Visible = false;
+                                toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
+                            }, exception: Process.ExceptionHandleEnum.Ignore);
+                        }
+                        break;
+                    case "status":
+                        toolStripStatusLabel1.Text = data as string;
+                        break;
+                    case "status delay":
+                        toolStripStatusLabel1.Text = data as string;
+                        //延时一段时间后清空文本。（存在情况：一段时间后可能文本框已被销毁。此时抛出异常，无需处理）
+                        Process.Async.DelayInvoke(1000, () => toolStripStatusLabel1.Text = "",
+                                                  exception: Process.ExceptionHandleEnum.Ignore);
+                        break;
+                    case "info":
+                        toolStripStatusLabel2.Text = data as string;
+                        break;
+                    case "info delay":
+                        //延时一段时间后清空文本。（存在情况：一段时间后可能文本框已被销毁。此时抛出异常，无需处理）
+                        toolStripStatusLabel2.Text = data as string;
+                        Process.Async.DelayInvoke(1000, () => toolStripStatusLabel2.Text = "",
+                                                  exception: Process.ExceptionHandleEnum.Ignore);
+                        break;
+                    case "exception":
+                        toolStripStatusLabel3.Text = "错误：" + data;
+                        break;
+                    case "exception delay":
+                        //延时一段时间后清空文本。（存在情况：一段时间后可能文本框已被销毁。此时抛出异常，无需处理）
+                        toolStripStatusLabel3.Text = "错误：" + data;
+                        Process.Async.DelayInvoke(1000, () => toolStripStatusLabel3.Text = "",
+                                                  exception: Process.ExceptionHandleEnum.Ignore);
+                        break;
+                    case "delay":
+                        //延时一段时间后清空文本。（存在情况：一段时间后可能文本框已被销毁。此时抛出异常，无需处理）
+                        toolStripStatusLabel4.Text = data as string;
+                        Process.Async.DelayInvoke(1000, () => toolStripStatusLabel4.Text = "",
+                                                  exception: Process.ExceptionHandleEnum.Ignore);
+                        break;
+                    default:
+                        toolStripStatusLabel4.Text = data as string;
+                        break;
                 }
-                catch (Exception ex)
-                {
-                    MessagePrint.Add("exception", ex.Message);
-                }
+                statusStrip1.Refresh();
             });
+            //事件调用该函数，执行线程可能并不是创建状态栏控件的线程
+            //需将打印任务交给创建状态栏的线程，否则可能引发异常
             if (InvokeRequired) BeginInvoke(action);
             else action();
 
@@ -135,11 +153,17 @@ namespace WhAnno
             worksapceFolderDialog.Description = "选择标注工作区，加载其中.png|.gif|.jpg|.bmp|.jpeg|.wmf图像文件";
             if (worksapceFolderDialog.ShowDialog() == DialogResult.OK)
             {
-                MessagePrint.Add("status", "加载中");
+                MessagePrint.Apply("status", "加载中");
                 workspace = worksapceFolderDialog.SelectedPath;
                 DirectoryInfo wkDir = new DirectoryInfo(workspace);
+                List<FileInfo> wkFiles = new List<FileInfo>();
+
+                wkFiles.AddRange(wkDir.GetFiles());
+                foreach (DirectoryInfo subDir in wkDir.GetDirectories())
+                    wkFiles.AddRange(subDir.GetFiles());
+
                 List<FileInfo> files = new List<FileInfo>();
-                foreach (FileInfo file in wkDir.GetFiles())
+                foreach (FileInfo file in wkFiles)
                 {
                     switch (file.Extension.ToLower())
                     {
@@ -155,36 +179,39 @@ namespace WhAnno
                             break;
                     }
                 }
+                MessagePrint.Apply("status", $"共{files.Count}张图像");
 
-                textPicturePannel.Clear();
+                annoPicturePannel.Clear();
 
                 //异步加载所有图像，并发送进度消息。
-                MessagePrint.Progress progress = new MessagePrint.Progress(files.Count) { ProgressingFormatString = "已加载{0}%" };
+                MessagePrint.Progress progress = new MessagePrint.Progress(files.Count) { ProgressingFormatString = "已加载{1}", Print = PrintStatus };
                 int count = 0;
                 foreach (FileInfo file in files)
                 {
-                    //Invoke调用一个异步Lambda，将很快返回，且发出异步线程处理。
-                    //因此，该循环短时间内并发出与文件数相同的异步线程数，进行
-                    //包含IO操作的图像加载过程。
-                    Invoke(new Action(async () =>
+                    Invoke(new Action(() =>
                     {
-                        //等待图像加载完成。
-                        await textPicturePannel.AddAsync(file.FullName);
-                        //发送进度消息。
-                        Interlocked.Increment(ref count);
-                        progress.Report(count);
+                        annoPicturePannel.AddEmpty(file.FullName);
+                        progress.Report(++count);
                     }));
                 }
+                //AnnoPictureBox[] annoPictures = new AnnoPictureBox[files.Count];
+                //for (int i = 0; i < files.Count; i++)
+                //{
+                //    //annoPictures[i] = new AnnoPictureBox() { FilePath = files[i].FullName };
+                //        annoPicturePannel.AddEmpty(files[i].FullName);
+                //    //annoPicturePannel.Refresh();
+                //    progress.Report(i + 1);
+                //}
+                ////annoPicturePannel.AddRange(annoPictures);
 
-                textPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
-
+                annoPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
             }
         }
 
         protected override void OnLayout(LayoutEventArgs levent)
         {
             base.OnLayout(levent);
-            canva.Width = textPicturePannel.Location.X - canva.Location.X;
+            canva.Width = annoPicturePannel.Location.X - canva.Location.X;
         }
 
         private void 退出ToolStripMenuItem_Click(object sender, EventArgs e)
@@ -198,7 +225,10 @@ namespace WhAnno
             if (annoFileDialog.ShowDialog() == DialogResult.OK)
             {
                 AnnoLoaderForm annoLoaderForm = new AnnoLoaderForm(annoFileDialog.FileName);
-                annoLoaderForm.ShowDialog();
+                if (annoLoaderForm.ShowDialog() == DialogResult.Yes)
+                {
+                    ;
+                }
                 annoLoaderForm.Dispose();
             }
         }
