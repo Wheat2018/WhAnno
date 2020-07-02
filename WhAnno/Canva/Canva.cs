@@ -24,8 +24,12 @@ namespace WhAnno.Anno
             get => annoPicture;
             set
             {
+                PaintEventHandler paintEvent = new PaintEventHandler((sender, e) => Invalidate());
+
+                if (annoPicture != null) annoPicture.Paint -= paintEvent;
                 OnImageChanging(new EventArgs());
                 annoPicture = value;
+                annoPicture.Paint += paintEvent;
                 ResetImageBounds();
                 OnImageChanged(new EventArgs());
             }
@@ -34,7 +38,16 @@ namespace WhAnno.Anno
         /// <summary>
         /// 显示的图像。
         /// </summary>
-        public Image Image => AnnoPicture?.Image;
+        public Image Image
+        {
+            get
+            {
+                if (AnnoPicture == null) return null;
+                
+                if(AnnoPicture.Image == null) AnnoPicture.Load(AnnoPicture.FilePath);
+                return AnnoPicture.Image;
+            }
+        }
 
         /// <summary>
         /// 获取或设置显示图像边界，由<see cref="ImageLocation"/>和<see cref="ImageSize"/>组成。
@@ -147,6 +160,7 @@ namespace WhAnno.Anno
         /// <param name="e"></param>
         protected virtual void OnImageChanged(EventArgs e)
         {
+            Invalidate();
             ImageChanged?.Invoke(this, e);
         }
 

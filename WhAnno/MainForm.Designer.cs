@@ -291,6 +291,7 @@
             this.y,
             this.width,
             this.height});
+            this.listView1.Enabled = false;
             listViewGroup1.Header = "Group1";
             listViewGroup1.Name = "listViewGroup1";
             listViewGroup2.Header = "Group2";
@@ -340,6 +341,7 @@
             this.columnHeader1,
             this.columnHeader2,
             this.columnHeader3});
+            this.listView2.Enabled = false;
             listViewGroup3.Header = "Group1";
             listViewGroup3.Name = "listViewGroup1";
             this.listView2.Groups.AddRange(new System.Windows.Forms.ListViewGroup[] {

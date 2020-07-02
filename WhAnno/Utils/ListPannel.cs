@@ -257,11 +257,15 @@ namespace WhAnno.Utils
         /// <summary>
         /// 清空所有项。
         /// </summary>
-        public void Clear()
+        /// <param name="fastClear">是否快速清空，不触发<see cref="ItemRemoved"/>事件。通常在被清空项即将被回收时使用。</param>
+        public void Clear(bool fastClear = false)
         {
-            while (Count > 0) Remove(GetItem(0));
+            if (fastClear) Items.Clear();
+            else
+                while (Count > 0) Remove(GetItem(0));
             GC.Collect();
         }
+
 
         /// <summary>
         /// 对每个项应用操作
@@ -352,11 +356,11 @@ namespace WhAnno.Utils
             switch (keyData)
             {
                 case Keys.Down:
-                case Keys.Left:
+                case Keys.Right:
                     NextIndex();
                     break;
                 case Keys.Up:
-                case Keys.Right:
+                case Keys.Left:
                     PrevIndex();
                     break;
                 default:
@@ -408,6 +412,7 @@ namespace WhAnno.Utils
         /// <summary>
         /// 获取最佳显示区大小
         /// </summary>
+        /// <remarks>显示区是可滚动面板的理论虚拟面板大小。</remarks>
         protected virtual Size BestDisplaySize
         {
             get
@@ -446,12 +451,37 @@ namespace WhAnno.Utils
                 return new Size(BestDisplaySize.Width / LayoutRange.Width, BestDisplaySize.Height / LayoutRange.Height);
             }
         }
+        /// <summary>
+        /// 当前位于绘图工作区的项的索引范围。
+        /// </summary>
+        /// <value>(int, int)元组，第一个值为起始索引，第二个值为终止索引。若<see cref="Count"/>为0，则为(-1,-1)</value>
+        protected virtual (int, int) InClientItemsRange
+        {
+            get
+            {
+                int first = -1, last = -1;
+                ItemType item;
+                for (int i = 0; i < Count; i++)
+                {
+                    item = GetItem(i);
+                    first = i;
+                    while (new Rectangle(item.Location, item.Size).IntersectsWith(ClientRectangle))
+                    {
+                        last = i++;
+                        if (i >= Count) break;
+                        item = GetItem(i);
+                    }
+                    if (last >= 0) break;
+                }
+                return (first, last);
+            }
+        }
 
         /// <summary>
         /// 选择下一项。
         /// </summary>
         /// <remarks>该方法在响应键盘方向键时被调用。</remarks>
-        protected void NextIndex() => Index = Math.Min(Index + 1, Count);
+        protected void NextIndex() => Index = Math.Min(Index + 1, Count - 1);
         /// <summary>
         /// 选择上一项。
         /// </summary>

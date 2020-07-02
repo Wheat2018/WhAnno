@@ -94,6 +94,7 @@ namespace WhAnno.PictureShow
 
         protected override void OnPaint(PaintEventArgs pe)
         {
+            if (Image == null) Load(FilePath);
             base.OnPaint(pe);
             SizeF size = pe.Graphics.MeasureString(FileName, paintFileNameFont);
             float startX = 0;

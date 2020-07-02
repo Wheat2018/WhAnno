@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -16,11 +17,32 @@ namespace WhAnno.PictureShow
 {
     class AnnoPictureListPannel : DynamicListPannel<AnnoPictureBox>
     {
+        //Properties
+        /// <summary>
+        /// 获取或设置是否对<see cref="AnnoPictureBox"/>进行动态回收。
+        /// </summary>
+        /// <remarks>动态回收：在<see cref="AnnoPictureBox"/>远离绘图工作区时，将其图像资源释放。当其出现在绘图工作区时，<see cref="AnnoPictureBox"/>会自动从URL加载图像。</remarks>
+        public bool IsDynamicDispose { get; set; } = false;
+
+        /// <summary>
+        /// 动态回收距离。
+        /// </summary>
+        /// <remarks>回收距离绘图工作区<see cref="DynamicDisposeDistance"/>项之前和<see cref="DynamicDisposeDistance"/>之后的项资源。</remarks>
+        public int DynamicDisposeDistance { get; set; } = 5;
+
         /// <summary>
         /// 提示文本。
         /// </summary>
         public ToolTip ToolTip { get; } = new ToolTip();
 
+        //Events
+        /// <summary>
+        /// 动态回收时发生。
+        /// </summary>
+        /// <remarks>动态回收：在<see cref="AnnoPictureBox"/>远离绘图工作区时，将其图像资源释放。当其出现在绘图工作区时，<see cref="AnnoPictureBox"/>会自动从URL加载图像。</remarks>
+        public event CancelEventHandler DynamicDispose;
+
+        //Methods
         /// <summary>
         /// 默认构造。设置滚动条和边框样式。
         /// </summary>
@@ -52,11 +74,7 @@ namespace WhAnno.PictureShow
             Add(annoPictureBox);
         }
 
-        public void AddEmpty(string picFilePath)
-        {
-            Add(new AnnoPictureBox() { FilePath = picFilePath });
-        }
-
+        //Override
         /// <summary>
         /// 处理<see cref="AnnoPictureBox.Index"/>特性
         /// </summary>
@@ -93,10 +111,47 @@ namespace WhAnno.PictureShow
             base.OnSelectedIndexChanged(item, e);
         }
 
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            OnDynamicDispose(new CancelEventArgs());
+            base.OnPaint(e);
+        }
+
+
         protected override void OnMouseMove(MouseEventArgs e)
         {
             MessagePrint.Add("info", "鼠标: " + e.Location.ToString());
             base.OnMouseMove(e);
+        }
+
+        //Overridable
+        /// <summary>
+        /// 引发<see cref="DynamicDispose"/>事件。
+        /// </summary>
+        protected virtual void OnDynamicDispose(CancelEventArgs e)
+        {
+            if (!e.Cancel)
+            {
+                if (InClientItemsRange.Item1 - DynamicDisposeDistance > 0)
+                {
+                    for (int i = 0; i < InClientItemsRange.Item1 - DynamicDisposeDistance; i++)
+                    {
+                        if (i == Index) continue;
+                        GetItem(i).Image?.Dispose();
+                        GetItem(i).Image = null;
+                    }
+                }
+                if (InClientItemsRange.Item2 + DynamicDisposeDistance < Count - 1)
+                {
+                    for (int i = InClientItemsRange.Item2 + DynamicDisposeDistance + 1; i < Count; i++)
+                    {
+                        if (i == Index) continue;
+                        GetItem(i).Image?.Dispose();
+                        GetItem(i).Image = null;
+                    }
+                }
+            }
+            DynamicDispose?.Invoke(this, e);
         }
 
     }

@@ -181,28 +181,17 @@ namespace WhAnno
                 }
                 MessagePrint.Apply("status", $"共{files.Count}张图像");
 
-                annoPicturePannel.Clear();
+                annoPicturePannel.Clear(true);
 
-                //异步加载所有图像，并发送进度消息。
+                //虚加载所有图像，并发送进度消息。
                 MessagePrint.Progress progress = new MessagePrint.Progress(files.Count) { ProgressingFormatString = "已加载{1}", Print = PrintStatus };
-                int count = 0;
-                foreach (FileInfo file in files)
+                AnnoPictureBox[] annoPictures = new AnnoPictureBox[files.Count];
+                for (int i = 0; i < files.Count; i++)
                 {
-                    Invoke(new Action(() =>
-                    {
-                        annoPicturePannel.AddEmpty(file.FullName);
-                        progress.Report(++count);
-                    }));
+                    annoPictures[i] = new AnnoPictureBox() { FilePath = files[i].FullName };
+                    progress.Report(i + 1);
                 }
-                //AnnoPictureBox[] annoPictures = new AnnoPictureBox[files.Count];
-                //for (int i = 0; i < files.Count; i++)
-                //{
-                //    //annoPictures[i] = new AnnoPictureBox() { FilePath = files[i].FullName };
-                //        annoPicturePannel.AddEmpty(files[i].FullName);
-                //    //annoPicturePannel.Refresh();
-                //    progress.Report(i + 1);
-                //}
-                ////annoPicturePannel.AddRange(annoPictures);
+                annoPicturePannel.AddRange(annoPictures);
 
                 annoPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
             }
