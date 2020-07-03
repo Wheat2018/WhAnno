@@ -13,30 +13,18 @@ using WhAnno.PictureShow;
 
 namespace WhAnno.Anno
 {
-    class Canva : Panel, ICoorConverter
+    class Canva : Panel, ICoorConverter, IItemAcceptable<BrushBase>, IItemAcceptable<AnnoPictureBox>
     {
         //Properties
         /// <summary>
         /// 与<see cref="Canva"/>绑定的<see cref="AnnoPictureBox"/>实例。
         /// </summary>
-        public AnnoPictureBox AnnoPicture 
-        {
-            get => annoPicture;
-            set
-            {
-                PaintEventHandler paintEvent = new PaintEventHandler((sender, e) => Invalidate());
+        public AnnoPictureBox AnnoPicture { get; private set; }
 
-                if (annoPicture != null) annoPicture.Paint -= paintEvent;
-                OnImageChanging(new EventArgs());
-                annoPicture = value;
-                annoPicture.Paint += paintEvent;
-                ResetImageBounds();
-                OnImageChanged(new EventArgs());
-            }
-        }
+        public BrushBase AnnoBrush { get; private set; }
 
         /// <summary>
-        /// 显示的图像。
+        /// 获取显示的图像。
         /// </summary>
         public Image Image
         {
@@ -44,7 +32,7 @@ namespace WhAnno.Anno
             {
                 if (AnnoPicture == null) return null;
                 
-                if(AnnoPicture.Image == null) AnnoPicture.Load(AnnoPicture.FilePath);
+                if(AnnoPicture.Image == null) AnnoPicture.Load();
                 return AnnoPicture.Image;
             }
         }
@@ -96,7 +84,6 @@ namespace WhAnno.Anno
         }
         
         //Fields
-        private AnnoPictureBox annoPicture = null;
         private Point imageLocation = new Point();
         private Size imageSize = new Size();
 
@@ -112,11 +99,10 @@ namespace WhAnno.Anno
 
         public Canva()
         {
-            SetStyle(
-                ControlStyles.ResizeRedraw | 
-                ControlStyles.OptimizedDoubleBuffer | 
-                ControlStyles.AllPaintingInWmPaint | 
-                ControlStyles.UserPaint, 
+            SetStyle(ControlStyles.ResizeRedraw
+                     | ControlStyles.OptimizedDoubleBuffer
+                     | ControlStyles.AllPaintingInWmPaint
+                     | ControlStyles.UserPaint, 
                 true);
             BorderStyle = BorderStyle.FixedSingle;
 
@@ -170,9 +156,7 @@ namespace WhAnno.Anno
 
             pe.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
 
-            Rectangle rect = new Rectangle(
-                ClientSize.Width / 6, ClientSize.Height / 4, ClientSize.Width * 2 / 3, ClientSize.Height / 2);
-            pe.Graphics.DrawRectangle(new Pen(ForeColor, 2), rect);
+            AnnoPicture?.PaintAnnos(pe.Graphics, this);
 
             base.OnPaint(pe);
         }
@@ -297,8 +281,50 @@ namespace WhAnno.Anno
             Point result = new Point((int)point.X, (int)point.Y);
             return new Point(result.X + ImageLocation.X, result.Y + ImageLocation.Y);
         }
+        /// <summary>
+        /// 与<see cref="AnnoPicture"/>图像同步刷新。
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void AnnoPicturePaintSync(object sender, PaintEventArgs e) => Invalidate();
 
         //Interface Implement
         Point ICoorConverter.Convert(Point point) => PointToCanvaClient(point);
+
+        void IItemAcceptable<BrushBase>.Accept(BrushBase item)
+        {
+            AnnoBrush = item;
+            Invalidate();
+        }
+
+        void IItemAcceptable<BrushBase>.Cancel(BrushBase item)
+        {
+            if (AnnoBrush == item) AnnoBrush = null;
+        }
+
+        void IItemAcceptable<AnnoPictureBox>.Accept(AnnoPictureBox item)
+        {
+            OnImageChanging(new EventArgs());
+
+            AnnoPicture = item;
+            item.Paint += AnnoPicturePaintSync;
+            ResetImageBounds();
+
+            OnImageChanged(new EventArgs());
+        }
+
+        void IItemAcceptable<AnnoPictureBox>.Cancel(AnnoPictureBox item)
+        {
+            OnImageChanging(new EventArgs());
+
+            item.Paint -= AnnoPicturePaintSync;
+            if (AnnoPicture == item)
+            {
+                AnnoPicture = null;
+                Invalidate();
+            }
+
+            OnImageChanged(new EventArgs());
+        }
     }
 }

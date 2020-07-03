@@ -20,11 +20,13 @@ namespace WhAnno
     public partial class MainForm : Form
     {
         string workspace;
+        AnnotationBase[] Annotations { get; set; } = null;
 
         private readonly AnnoPictureListPannel annoPicturePannel = new AnnoPictureListPannel();
         private readonly BrushListPannel brushListPanel = new BrushListPannel();
         private readonly Canva canva = new Canva();
 
+        private readonly List<AnnoPictureBox> collect = new List<AnnoPictureBox>();
         public MainForm()
         {
             Controls.Add(annoPicturePannel);
@@ -45,6 +47,7 @@ namespace WhAnno
             {
                 annoPicturePannel.Dock = DockStyle.Right;
                 annoPicturePannel.Width = 200;
+                annoPicturePannel.Targets.Add(canva);
             }
             {
                 brushListPanel.Dock = DockStyle.Right;
@@ -53,23 +56,10 @@ namespace WhAnno
                 {
                     brushListPanel.Add(Assembly.GetExecutingAssembly().CreateInstance(item.FullName) as BrushBase);
                 }
+                brushListPanel.Targets.Add(canva);
             }
             {
                 canva.Dock = DockStyle.Left;
-                canva.Paint += (_sender, _pe) =>
-                {
-                    Anno.Brush.Rectangle.Annotation annotation = new Anno.Brush.Rectangle.Annotation
-                    {
-                        x = 10,
-                        y = 10,
-                        width = 50,
-                        height = 50
-                    };
-
-                    if (brushListPanel.CurrentItem != null)
-                    brushListPanel.CurrentItem?.PaintAnno(_pe.Graphics, annotation, canva);
-                };
-                annoPicturePannel.SelectedIndexChanged += (_sender, _item, _e) => canva.AnnoPicture = _item;
             }
         }
 
@@ -143,8 +133,8 @@ namespace WhAnno
             });
             //事件调用该函数，执行线程可能并不是创建状态栏控件的线程
             //需将打印任务交给创建状态栏的线程，否则可能引发异常
-            if (InvokeRequired) BeginInvoke(action);
-            else action();
+            if (InvokeRequired) BeginInvoke(Process.CatchAction(action));
+            else Process.CatchAction(action)();
 
         }
 
@@ -153,47 +143,64 @@ namespace WhAnno
             worksapceFolderDialog.Description = "选择标注工作区，加载其中.png|.gif|.jpg|.bmp|.jpeg|.wmf图像文件";
             if (worksapceFolderDialog.ShowDialog() == DialogResult.OK)
             {
-                MessagePrint.Apply("status", "加载中");
-                workspace = worksapceFolderDialog.SelectedPath;
-                DirectoryInfo wkDir = new DirectoryInfo(workspace);
-                List<FileInfo> wkFiles = new List<FileInfo>();
-
-                wkFiles.AddRange(wkDir.GetFiles());
-                foreach (DirectoryInfo subDir in wkDir.GetDirectories())
-                    wkFiles.AddRange(subDir.GetFiles());
-
-                List<FileInfo> files = new List<FileInfo>();
-                foreach (FileInfo file in wkFiles)
+                try
                 {
-                    switch (file.Extension.ToLower())
+                    MessagePrint.Apply("status", "加载中");
+                    workspace = worksapceFolderDialog.SelectedPath;
+                    DirectoryInfo wkDir = new DirectoryInfo(workspace);
+                    List<FileInfo> wkFiles = new List<FileInfo>();
+
+                    wkFiles.AddRange(wkDir.GetFiles());
+                    foreach (DirectoryInfo subDir in wkDir.GetDirectories("*", SearchOption.AllDirectories))
+                        wkFiles.AddRange(subDir.GetFiles());
+
+                    List<FileInfo> files = new List<FileInfo>();
+                    foreach (FileInfo file in wkFiles)
                     {
-                        case ".png":
-                        case ".gif":
-                        case ".jpg":
-                        case ".bmp":
-                        case ".jpeg":
-                        case ".wmf":
-                            files.Add(file);
-                            break;
-                        default:
-                            break;
+                        switch (file.Extension.ToLower())
+                        {
+                            case ".png":
+                            case ".gif":
+                            case ".jpg":
+                            case ".bmp":
+                            case ".jpeg":
+                            case ".wmf":
+                                files.Add(file);
+                                break;
+                            default:
+                                break;
+                        }
                     }
+                    MessagePrint.Apply("status", $"共{files.Count}张图像");
+
+                    annoPicturePannel.Clear(true);
+                    collect.ForEach((ctl) => { ctl.Image?.Dispose(); ctl.Dispose(); });
+                    annoPicturePannel.IsDynamicAdd = files.Count > 100;
+                    annoPicturePannel.IsDynamicDispose = files.Count > 100;
+
+                    //虚加载所有图像，并发送进度消息。
+                    MessagePrint.Progress progress = new MessagePrint.Progress(files.Count)
+                    {
+                        ProgressingFormatString = "已加载{1}",
+                        ProgressedString = $"就绪，共{files.Count}张图像",
+                        Print = PrintStatus
+                    };
+                    AnnoPictureBox[] annoPictures = new AnnoPictureBox[files.Count];
+                    for (int i = 0; i < files.Count; i++)
+                    {
+                        annoPictures[i] = new AnnoPictureBox() { FilePath = files[i].FullName };
+                        progress.Report(i + 1);
+                    }
+                    annoPicturePannel.AddRange(annoPictures);
+                    collect.AddRange(annoPictures);
+
+                    annoPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font("微软雅黑", 15));
+
                 }
-                MessagePrint.Apply("status", $"共{files.Count}张图像");
-
-                annoPicturePannel.Clear(true);
-
-                //虚加载所有图像，并发送进度消息。
-                MessagePrint.Progress progress = new MessagePrint.Progress(files.Count) { ProgressingFormatString = "已加载{1}", Print = PrintStatus };
-                AnnoPictureBox[] annoPictures = new AnnoPictureBox[files.Count];
-                for (int i = 0; i < files.Count; i++)
+                catch (Exception ex)
                 {
-                    annoPictures[i] = new AnnoPictureBox() { FilePath = files[i].FullName };
-                    progress.Report(i + 1);
+                    MessagePrint.Add("exception", ex.Message);
                 }
-                annoPicturePannel.AddRange(annoPictures);
-
-                annoPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font(item.paintIndexFont.FontFamily, 15));
             }
         }
 
@@ -213,19 +220,47 @@ namespace WhAnno
             annoFileDialog.Title = "载入标注文本文件";
             if (annoFileDialog.ShowDialog() == DialogResult.OK)
             {
-                AnnoLoaderForm annoLoaderForm = new AnnoLoaderForm(annoFileDialog.FileName);
-                if (annoLoaderForm.ShowDialog() == DialogResult.Yes)
+                using (AnnoLoaderForm annoLoaderForm = new AnnoLoaderForm(annoFileDialog.FileName))
                 {
-                    ;
+                    if (annoLoaderForm.ShowDialog() == DialogResult.Yes)
+                    {
+                        Annotations = annoLoaderForm.Annotations;
+                        void ItemAdd(object _sender, AnnoPictureBox _item, EventArgs _e)
+                        {
+                            string filePath = _item.FilePath;
+                            _ = Process.Async.Now(() =>
+                            {
+                                for (int i = 0; i < Annotations.Length; i++)
+                                {
+                                    if (AnnoPictureBox.CheckAnnotation(Annotations[i], filePath))
+                                    {
+                                        _item.Annotations.Add(Annotations[i]);
+                                        Annotations[i] = null;
+                                    }
+                                }
+                            });
+                        }
+
+                        MessagePrint.Progress progress = new MessagePrint.Progress(annoPicturePannel.Count)
+                        {
+                            ProgressingFormatString = "正在处理第{1}项，共{2}项",
+                            Print = PrintStatus
+                        };
+                        (annoPicturePannel as ListPannel<AnnoPictureBox>).ForEachItem((item) =>
+                        {
+                            ItemAdd(null, item, null);
+                            progress.IncReport();
+                        });
+                        annoPicturePannel.ItemAdded += ItemAdd;
+                    }
                 }
-                annoLoaderForm.Dispose();
             }
         }
 
         private void TestToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Form form = new Form();
-            form.ShowDialog();
+            GC.Collect();
+            MessagePrint.Add(GC.CollectionCount(0));
         }
     }
 }

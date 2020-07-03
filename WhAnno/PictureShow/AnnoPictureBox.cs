@@ -48,6 +48,7 @@ namespace WhAnno.PictureShow
 
         public AnnoPictureBox()
         {
+            Annotations.AsParallel();
             SizeMode = PictureBoxSizeMode.Zoom;
             BorderStyle = BorderStyle.FixedSingle;
             paintFileNameFont = paintIndexFont = Font;
@@ -85,28 +86,63 @@ namespace WhAnno.PictureShow
             completeCallBack?.Invoke();
         }
 
-        //public bool CheckAnnotation(object annotation)
-        //{
-        //    if (!BrushBase.IsAnnoType(annotation.GetType())) return false;
+        static public bool CheckAnnotation(AnnotationBase annotation, string filePath)
+        {
+            return annotation != null && (annotation.file.Length == 0 || filePath.TailContains(annotation.file));
+        }
 
-        //}
+        public bool AddAnnotation(AnnotationBase annotation)
+        {
+            if (!CheckAnnotation(annotation, FilePath)) return false;
+            annotation.file = FilePath;
+            Annotations.Add(annotation);
+            return true;
+        }
 
+        /// <summary>
+        /// 给定GDI+绘图图面，将标注绘制到指定图面中。
+        /// </summary>
+        /// <param name="g">GDI+绘图图面</param>
+        /// <param name="cvt">坐标变换规则</param>
+        /// 
+        public void PaintAnnos(Graphics g, ICoorConverter cvt = null)
+        {
+            foreach (AnnotationBase anno in Annotations)
+                anno.CreatBrush().PaintAnno(g, anno, cvt);
+        }
 
         protected override void OnPaint(PaintEventArgs pe)
         {
-            if (Image == null) Load(FilePath);
+            if (Image == null) Load();
             base.OnPaint(pe);
+
+            pe.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+
             SizeF size = pe.Graphics.MeasureString(FileName, paintFileNameFont);
             float startX = 0;
             float startY = Height - size.Height;
             pe.Graphics.DrawString(FileName, paintFileNameFont, new SolidBrush(ForeColor), startX, startY);
-            using(SolidBrush brush = new SolidBrush(Color.FromArgb(150,Color.Orange)))
+            using (SolidBrush brush = new SolidBrush(Color.FromArgb(150, Color.Orange)))
             {
                 pe.Graphics.FillRectangle(brush,
                     new RectangleF(new PointF(0, 0),
                     pe.Graphics.MeasureString(Index.ToString(), paintIndexFont)));
+                pe.Graphics.DrawString(Index.ToString(), paintIndexFont, new SolidBrush(ForeColor), 0, 0);
             }
-            pe.Graphics.DrawString(Index.ToString(), paintIndexFont, new SolidBrush(ForeColor), 0, 0);
+
+            if (Annotations.Count > 0)
+            {
+                using (SolidBrush brush = new SolidBrush(Color.FromArgb(150, Color.Red)))
+                {
+                    SizeF textSize = pe.Graphics.MeasureString(Annotations.Count.ToString(), paintIndexFont);
+                    pe.Graphics.FillEllipse(brush, new RectangleF(Width - 1.2f * textSize.Width,
+                                                                    -1.2f * textSize.Height,
+                                                                    2.4f * textSize.Width,
+                                                                    2.4f * textSize.Height));
+                    pe.Graphics.DrawString(Annotations.Count.ToString(), paintIndexFont, new SolidBrush(ForeColor),
+                                            Width - textSize.Width, 0);
+                }
+            }
         }
     }
 }

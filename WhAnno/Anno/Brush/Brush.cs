@@ -119,11 +119,11 @@ namespace WhAnno.Anno.Base
         /// <summary>
         /// 标注所在图像名。
         /// </summary>
-        public string file;
+        public string file = "";
         /// <summary>
         /// 标注类别。
         /// </summary>
-        public string category;
+        public string category = "";
 
         //Methods
         /// <summary>

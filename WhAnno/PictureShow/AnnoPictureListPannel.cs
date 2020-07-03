@@ -48,6 +48,9 @@ namespace WhAnno.PictureShow
         /// </summary>
         public AnnoPictureListPannel()
         {
+            SetStyle(ControlStyles.OptimizedDoubleBuffer
+                     | ControlStyles.AllPaintingInWmPaint, true);
+
             AutoScroll = true;
             BorderStyle = BorderStyle.FixedSingle;
         }
@@ -73,6 +76,13 @@ namespace WhAnno.PictureShow
             annoPictureBox.SetPictureAsync(picFilePath, completeCallBack);
             Add(annoPictureBox);
         }
+
+        /// <summary>
+        /// 引发适当的动态回收事件。
+        /// </summary>
+        /// <param name="e"></param>
+        public void RaiseDynamicDispose(CancelEventArgs e) => OnDynamicDispose(e);
+
 
         //Override
         /// <summary>
@@ -100,15 +110,17 @@ namespace WhAnno.PictureShow
         /// 选中项的视觉效果变更。
         /// </summary>
         /// <param name="e"></param>
-        protected override void OnSelectedIndexChanged(AnnoPictureBox item, EventArgs e)
+        protected override void OnItemSelected(AnnoPictureBox item, EventArgs e)
         {
-            if (LastItem != default)
-            {
-                LastItem.BackColor = CurrentItem.BackColor;
-            }
-            CurrentItem.BackColor = SystemColors.ActiveCaption;
+            item.BackColor = SystemColors.ActiveCaption;
             MessagePrint.Add("status", "选中: " + CurrentItem.FileName);
-            base.OnSelectedIndexChanged(item, e);
+            base.OnItemSelected(item, e);
+        }
+
+        protected override void OnItemCanceled(AnnoPictureBox item, EventArgs e)
+        {
+            item.BackColor = SystemColors.Control;
+            base.OnItemCanceled(item, e);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -130,7 +142,7 @@ namespace WhAnno.PictureShow
         /// </summary>
         protected virtual void OnDynamicDispose(CancelEventArgs e)
         {
-            if (!e.Cancel)
+            if (!e.Cancel && IsDynamicDispose)
             {
                 if (InClientItemsRange.Item1 - DynamicDisposeDistance > 0)
                 {

@@ -28,9 +28,11 @@ namespace WhAnno.Utils
     /// <summary>
     /// 具有自动排版功能的列表框。每一项必须继承自<see cref="Control"/>，以便列表框可以对齐进行排版。
     /// </summary>
-    /// <typeparam name="ItemType">项类型：继承自<see cref="Control"/>的类型</typeparam>
-    class ListPannel<ItemType> : FlowLayoutPanel where ItemType: Control
+    /// <typeparam name="ItemType">项类型：继承自<see cref="Control"/>的类型。</typeparam>
+    class ListPannel<ItemType> : FlowLayoutPanel where ItemType : Control
     {
+        private ItemType currentItem = null;
+
         //Properties
         /// <summary>
         /// 获取项总数。
@@ -45,13 +47,7 @@ namespace WhAnno.Utils
         /// </summary>
         public int Index
         {
-            get
-            {
-                if (CurrentItem != null)
-                    return IndexOf(CurrentItem);
-                else
-                    return -1;
-            }
+            get => IndexOf(CurrentItem);
             set
             {
                 if (value >= 0 && value < Count)
@@ -63,18 +59,28 @@ namespace WhAnno.Utils
         /// </summary>
         public float Aspect { get; set; } = 1;
         /// <summary>
-        /// 获取当前选中项，未选中项时返回null。
+        /// 获取或设置当前选中项，未选中项时为null。
         /// </summary>
-        public ItemType CurrentItem { get; protected set; } = default;
-        /// <summary>
-        /// 获取上次选中项，上次未选中项时返回null。。
-        /// </summary>
-        public ItemType LastItem { get; protected set; } = default;
+        /// <value>获取的值或设置的值都应为为null或<see cref="Items"/>当中的项。设置为null取消当前选择项。</value>
+        /// <remarks>选中非null项引发项的<see cref="ItemSelected"/>事件。上次选中非null，则引发上次项的<see cref="ItemCanceled"/>事件。</remarks>
+        public ItemType CurrentItem
+        { 
+            get => currentItem;
+            set
+            {
+                if (currentItem == value || (value != null && !Items.Contains(value))) return;
+
+                ItemType lastItem = currentItem;
+                currentItem = value;
+                if (lastItem != null) OnItemCanceled(lastItem, new EventArgs());
+                if (value != null) OnItemSelected(value, new EventArgs());
+            }
+        }
         /// <summary>
         /// 获取或设置ListPanel的布局滚动方向
         /// </summary>
         public FlowMode FlowMode
-        { 
+        {
             get => WrapContents == true ? FlowMode.Vertical : FlowMode.Horizon;
             set => WrapContents = value == FlowMode.Vertical;
         }
@@ -82,14 +88,22 @@ namespace WhAnno.Utils
         /// 所有项。
         /// </summary>
         public ControlCollection Items => Controls;
+        /// <summary>
+        /// 选择项封送目标。
+        /// </summary>
+        public List<IItemAcceptable<ItemType>> Targets { get; } = new List<IItemAcceptable<ItemType>>();
 
         //Event
         public delegate void ItemEventHandle(object sender, ItemType item, EventArgs e);
         public delegate void ItemEventHandle<TEventArgs>(object sender, ItemType item, TEventArgs e);
         /// <summary>
-        /// 更改选中项后发生。
+        /// 选中项后发生。
         /// </summary>
-        public event ItemEventHandle SelectedIndexChanged;
+        public event ItemEventHandle ItemSelected;
+        /// <summary>
+        /// 取消选中项后发生。
+        /// </summary>
+        public event ItemEventHandle ItemCanceled;
         /// <summary>
         /// 添加项后发生
         /// </summary>
@@ -117,7 +131,7 @@ namespace WhAnno.Utils
 
         //Method
         /// <summary>
-        /// 默认构造函数
+        /// 构造<see cref="ListPannel{ItemType}"/>。
         /// </summary>
         /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
         public ListPannel(bool shareMouseEvent = true)
@@ -190,6 +204,26 @@ namespace WhAnno.Utils
         }
 
         /// <summary>
+        /// 构造<see cref="ListPannel{ItemType}"/>并设置封送目标。
+        /// </summary>
+        /// <param name="target">封送目标</param>
+        /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
+        public ListPannel(IItemAcceptable<ItemType> target, bool shareMouseEvent = true) : this(shareMouseEvent)
+        {
+            Targets.Add(target);
+        }
+
+        /// <summary>
+        /// 构造<see cref="ListPannel{ItemType}"/>并设置封送目标组。
+        /// </summary>
+        /// <param name="targets">封送目标数组</param>
+        /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
+        public ListPannel(IItemAcceptable<ItemType>[] targets, bool shareMouseEvent = true) : this(shareMouseEvent)
+        {
+            Targets.AddRange(targets);
+        }
+
+        /// <summary>
         /// 获取面板中指定索引的项
         /// </summary>
         /// <param name="index">索引值</param>
@@ -209,7 +243,7 @@ namespace WhAnno.Utils
         /// <param name="item">项</param>
         public void Add(ItemType item)
         {
-            if (Items.Contains(item)) return;
+            if (item == null || Items.Contains(item)) return;
 
             Items.Add(item);
 
@@ -234,8 +268,7 @@ namespace WhAnno.Utils
         {
             if (!Items.Contains(item)) return;
 
-            if (CurrentItem == item) CurrentItem = default;
-            if (LastItem == item) LastItem = default;
+            if (CurrentItem == item) CurrentItem = null;
             Items.Remove(item);
 
             OnItemRemoved(item, new EventArgs());
@@ -245,14 +278,7 @@ namespace WhAnno.Utils
         /// 选中项。
         /// </summary>
         /// <param name="item"></param>
-        public void Select(ItemType item)
-        {
-            if (CurrentItem == item || !Items.Contains(item)) return;
-
-            LastItem = CurrentItem;
-            CurrentItem = item;
-            OnSelectedIndexChanged(item, new EventArgs());
-        }
+        public void Select(ItemType item) => CurrentItem = item;
 
         /// <summary>
         /// 清空所有项。
@@ -260,7 +286,12 @@ namespace WhAnno.Utils
         /// <param name="fastClear">是否快速清空，不触发<see cref="ItemRemoved"/>事件。通常在被清空项即将被回收时使用。</param>
         public void Clear(bool fastClear = false)
         {
-            if (fastClear) Items.Clear();
+            if (fastClear)
+            {
+                CurrentItem = null;
+                CurrentItem = null;
+                Items.Clear();
+            }
             else
                 while (Count > 0) Remove(GetItem(0));
             GC.Collect();
@@ -278,14 +309,26 @@ namespace WhAnno.Utils
 
         //Overridable
         /// <summary>
-        /// 引发<see cref="SelectedIndexChanged"/>事件
+        /// 引发<see cref="ItemSelected"/>事件
         /// </summary>
         /// <param name="item"></param>
         /// <param name="e"></param>
-        protected virtual void OnSelectedIndexChanged(ItemType item, EventArgs e)
+        protected virtual void OnItemSelected(ItemType item, EventArgs e)
         {
             ScrollControlIntoView(item);
-            SelectedIndexChanged?.Invoke(this, item, e);
+            Targets.ForEach((target) => target.Accept(item));
+            ItemSelected?.Invoke(this, item, e);
+        }
+
+        /// <summary>
+        /// 引发<see cref="ItemCanceled"/>事件
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="e"></param>
+        protected virtual void OnItemCanceled(ItemType item, EventArgs e)
+        {
+            Targets.ForEach((target) => target.Cancel(item));
+            ItemCanceled?.Invoke(this, item, e);
         }
 
         /// <summary>
@@ -309,7 +352,7 @@ namespace WhAnno.Utils
         /// <param name="e"></param>
         protected virtual void OnItemClick(ItemType item, EventArgs e)
         {
-            if(Judge.MouseEvent.Left(e)) Select(item);
+            if (Judge.MouseEvent.Left(e)) Select(item);
             ItemClick?.Invoke(this, item, e);
         }
 
@@ -374,8 +417,8 @@ namespace WhAnno.Utils
         /// <summary>
         /// 获取当前项的布局范围，即每行最高有几项，每列最高有几项。
         /// </summary>
-        protected virtual Size LayoutRange 
-        { 
+        protected virtual Size LayoutRange
+        {
             get
             {
                 if (FlowMode == FlowMode.Horizon)

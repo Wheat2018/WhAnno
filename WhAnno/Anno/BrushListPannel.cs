@@ -57,17 +57,19 @@ namespace WhAnno.Anno
             base.OnItemMouseLeave(item, e);
         }
 
-        protected override void OnSelectedIndexChanged(BrushBase item, EventArgs e)
+        protected override void OnItemSelected(BrushBase item, EventArgs e)
         {
-            if (LastItem != default)
-            {
-                LastItem.BackColor = SystemColors.Control;
-                LastItem.BorderStyle = BorderStyle.None;
-            }
-            CurrentItem.BackColor = SystemColors.ActiveCaption;
-            CurrentItem.BorderStyle = BorderStyle.Fixed3D;
+            item.BackColor = SystemColors.ActiveCaption;
+            item.BorderStyle = BorderStyle.Fixed3D;
             MessagePrint.Add("status", "选中: " + CurrentItem.GetType().Name);
-            base.OnSelectedIndexChanged(item, e);
+            base.OnItemSelected(item, e);
+        }
+
+        protected override void OnItemCanceled(BrushBase item, EventArgs e)
+        {
+            item.BackColor = SystemColors.Control;
+            item.BorderStyle = BorderStyle.None;
+            base.OnItemCanceled(item, e);
         }
 
         protected override void OnLayout(LayoutEventArgs levent)

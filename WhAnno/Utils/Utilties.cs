@@ -135,6 +135,11 @@ namespace WhAnno.Utils
         {
             //Properties
             /// <summary>
+            /// 获取或设置当前值。
+            /// </summary>
+            public int Value { get => incValue; set => Interlocked.Exchange(ref incValue, value); }
+
+            /// <summary>
             /// 获取或设置最大值。
             /// </summary>
             public int MaxValue { get; set; } = 100;
@@ -154,7 +159,7 @@ namespace WhAnno.Utils
             /// 处理中报告格式串。
             /// </summary>
             /// <value>默认为"{0}%"，即进度为100打印"100%"</value>
-            /// <remarks>格式串中，{0}替换为进度值，{1}替换为传入值</remarks>
+            /// <remarks>格式串中，{0}替换为进度值，{1}替换为传入值, {2}替换为<see cref="MaxValue"/></remarks>
             public string ProgressingFormatString { get; set; } = "{0}%";
 
             /// <summary>
@@ -170,6 +175,7 @@ namespace WhAnno.Utils
 
             //Fields
             private int lastProgress = -1;
+            private int incValue = 0;
 
             //Methods
             /// <summary>
@@ -178,15 +184,22 @@ namespace WhAnno.Utils
             /// <param name="maxValue"><see cref="MaxValue"/></param>
             public Progress(int maxValue = 100) => MaxValue = maxValue;
 
+            /// <summary>
+            /// 自增计数器并报告。
+            /// </summary>
+            public void IncReport() => Report(Value + 1);
+
+
             //Interface Implements
             public void Report(int value)
             {
+                Value = value;
                 int progress = MaxValue == 0 ? MaxProgress : value * MaxProgress / MaxValue;
                 if (progress == lastProgress) return;
                 Interlocked.Exchange(ref lastProgress, progress);
 
                 Print?.Invoke("progress", progress);
-                if (progress < MaxProgress) Print?.Invoke("status", string.Format(ProgressingFormatString, progress, value));
+                if (progress < MaxProgress) Print?.Invoke("status", string.Format(ProgressingFormatString, progress, value, MaxValue));
                 else Print?.Invoke("status", ProgressedString);
             }
         }
@@ -269,6 +282,14 @@ namespace WhAnno.Utils
         /// 处理任务提前终止委托，委托指示了任务何时应当尽快终止。任务应当在会消耗大量时间的语句块中不断判断该委托返回值，并在检测到返回为true时尽快结束任务。
         /// </summary>
         public delegate bool Abort();
+
+        /// <summary>
+        /// 任务取消异常。
+        /// </summary>
+        public class ProcessAbortException : Exception
+        {
+            public override string Message => "任务取消。";
+        }
 
         /// <summary>
         /// 表示任务抛出异常时的处理方式，带有该类型参数的函数，应当是异常安全的。
@@ -411,7 +432,6 @@ namespace WhAnno.Utils
             private readonly object abortLock = new object();
 
             private Action<Abort> nextHandle = null;
-            private bool disposedValue;
 
             /// <summary>
             /// 处理任务线程主函数。
@@ -451,38 +471,7 @@ namespace WhAnno.Utils
                 }
             }
 
-            #region IDisposable
-            protected virtual void Dispose(bool disposing)
-            {
-                if (!disposedValue)
-                {
-                    if (disposing)
-                    {
-                        // TODO: 释放托管状态(托管对象)
-                        thread_suspend.Dispose();
-                    }
-
-                    // TODO: 释放未托管的资源(未托管的对象)并替代终结器
-                    End();
-                    // TODO: 将大型字段设置为 null
-                    disposedValue = true;
-                }
-            }
-
-            // // TODO: 仅当“Dispose(bool disposing)”拥有用于释放未托管资源的代码时才替代终结器
-            ~UniqueAsync()
-            {
-                // 不要更改此代码。请将清理代码放入“Dispose(bool disposing)”方法中
-                Dispose(disposing: false);
-            }
-
-            public void Dispose()
-            {
-                // 不要更改此代码。请将清理代码放入“Dispose(bool disposing)”方法中
-                Dispose(disposing: true);
-                GC.SuppressFinalize(this);
-            }
-            #endregion
+            public void Dispose() => End();
         }
     }
 

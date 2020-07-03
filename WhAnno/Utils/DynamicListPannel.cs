@@ -13,6 +13,7 @@ namespace WhAnno.Utils
     /// <typeparam name="ItemType"></typeparam>
     class DynamicListPannel<ItemType> : ListPannel<ItemType> where ItemType : Control
     {
+        //Properties
         /// <summary>
         /// 获取或设置是否动态添加控件。
         /// </summary>
@@ -39,6 +40,7 @@ namespace WhAnno.Utils
         /// <remarks>动态项：添加项时不立刻添加到面板，当控件位置接近显示区时实际添加。</remarks>
         public List<ItemType> DynamicItems { get; } = new List<ItemType>();
 
+        //Events
         /// <summary>
         /// 动态添加时发生
         /// </summary>
@@ -56,7 +58,7 @@ namespace WhAnno.Utils
             if (IsDynamicAdd)
             {
                 DynamicItems.Add(item);
-                TryDynamicAdd();
+                OnDynamicAdd(new EventArgs());
             }
             else base.Add(item);
         }
@@ -70,7 +72,7 @@ namespace WhAnno.Utils
             if (IsDynamicAdd)
             {
                 DynamicItems.AddRange(items);
-                TryDynamicAdd();
+                OnDynamicAdd(new EventArgs());
             }
             else
             {
@@ -116,7 +118,7 @@ namespace WhAnno.Utils
 
 
         /// <summary>
-        /// 引发动态添加事件。
+        /// 引发适当的动态添加事件。
         /// </summary>
         /// <param name="e"></param>
         public void RaiseDynamicAdd(EventArgs e) => OnDynamicAdd(e);
@@ -124,8 +126,7 @@ namespace WhAnno.Utils
         //Override
         protected override void OnPaint(PaintEventArgs e)
         {
-            TryDynamicAdd();
-            MessagePrint.Add(InClientItemsRange.ToString());
+            OnDynamicAdd(new EventArgs());
             base.OnPaint(e);
         }
 
@@ -136,23 +137,13 @@ namespace WhAnno.Utils
         /// <param name="e"></param>
         protected virtual void OnDynamicAdd(EventArgs e)
         {
-            int count = Math.Min(DynamicNum, DynamicItems.Count);
-            for (int i = 0; i < count; i++)
-            {
-                base.Add(DynamicItems[i]);
-            }
-            DynamicItems.RemoveRange(0, count);
-            DynamicAdd?.Invoke(this, e);
-        }
-
-        //Implement Details
-        /// <summary>
-        /// 判断是否需要动态添加，需要时引发<see cref="OnDynamicAdd(EventArgs)"/>。
-        /// </summary>
-        protected void TryDynamicAdd()
-        {
             if (IsDynamicAdd && InClientItemsRange.Item2 >= Count - 1 - DynamicTolerate)
-                OnDynamicAdd(new EventArgs());
+            {
+                int count = Math.Min(DynamicNum, DynamicItems.Count);
+                base.AddRange(DynamicItems.GetRange(0, count).ToArray());
+                DynamicItems.RemoveRange(0, count);
+            }
+            DynamicAdd?.Invoke(this, e);
         }
 
     }

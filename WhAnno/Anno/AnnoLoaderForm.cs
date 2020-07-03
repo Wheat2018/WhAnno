@@ -18,11 +18,11 @@ using System.Collections;
 
 namespace WhAnno
 {
-    public partial class AnnoLoaderForm : Form
+    public partial class AnnoLoaderForm : Form, IDisposable
     {
         public string RegexText => textBox2.Text.Replace("\r\n", "\n");
 
-        public object[] Annotations { get; private set; }
+        public AnnotationBase[] Annotations { get; private set; }
 
         private readonly string AnnoFilePath;
         private string FileContext;
@@ -57,7 +57,7 @@ namespace WhAnno
                     brushListPanel.Add(Assembly.GetExecutingAssembly().CreateInstance(item.FullName) as BrushBase);
                 }
 
-                brushListPanel.SelectedIndexChanged += (_sender, _item, _e) =>
+                brushListPanel.ItemSelected += (_sender, _item, _e) =>
                 {
                     if (_item == null) return;
                     listView1.Columns.Clear();
@@ -153,7 +153,7 @@ namespace WhAnno
                         e.Cancel = true;
                         break;
                     case DialogResult.Yes:
-                        string[] patterns = RegexText.Split("\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                        string[] patterns = RegexText.GetLines();
                         MatchCollection matches = Regex.Matches(FileContext, patterns[0]);
                         Annotations = GetAnnoFromRegex(brushListPanel.CurrentItem, matches.ToStringArray(),
                                                        patterns.SubArray(1, patterns.Length - 1),
@@ -165,11 +165,19 @@ namespace WhAnno
                                                        });
                         break;
                     case DialogResult.No:
+                        
                         break;
                 }
             }
 
             base.OnClosing(e);
+        }
+
+        void IDisposable.Dispose()
+        {
+            Annotations = null;
+            Dispose();
+            GC.Collect();
         }
 
         private void PrintStatus(string describe, object data)
@@ -272,7 +280,7 @@ namespace WhAnno
                     ListViewGroup[] groups = new ListViewGroup[realCount];
                     for (int i = 0; i < realCount; i++)
                     {
-                        if (abort != null && abort()) return;
+                        if (abort != null && abort()) throw new Process.ProcessAbortException();
 
                         matchResult.Append(matches[i].Value.Replace("\n",@"\n") + "\r\n");
                         FieldInfo[] fields = brushListPanel.CurrentItem.AnnoType.GetFields(FieldsOrder.BaseToSub);
@@ -280,7 +288,7 @@ namespace WhAnno
                                                                   new string[1] { matches[i].Value },
                                                                   patterns.SubArray(1, patterns.Length - 1),
                                                                   fields, abort);
-                        if (annos == null) return;
+                        if (annos == null) throw new Process.ProcessAbortException();
 
                         ListViewGroup group = new ListViewGroup($"Match {i} ({annos.Length})");
                         foreach (AnnotationBase anno in annos)
@@ -305,16 +313,21 @@ namespace WhAnno
                             listView1.Items.AddRange(group.Items);
                         }
                     }));
-
-                    GC.Collect();
                 }
                 else
                     MessagePrint.Add("status", "就绪");
+            }
+            catch (Process.ProcessAbortException)
+            {
             }
             catch (Exception ex)
             {
                 MessagePrint.Add("status", "正则计算错误");
                 MessagePrint.Add("exception delay", ex.Message);
+            }
+            finally
+            {
+                GC.Collect();
             }
         }
 
