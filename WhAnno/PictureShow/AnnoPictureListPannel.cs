@@ -112,14 +112,20 @@ namespace WhAnno.PictureShow
         /// <param name="e"></param>
         protected override void OnItemSelected(AnnoPictureBox item, EventArgs e)
         {
-            item.BackColor = SystemColors.ActiveCaption;
+            item.Paint += SelectedItemPaint;
+            item.Invalidate();
             MessagePrint.Add("status", "选中: " + CurrentItem.FileName);
             base.OnItemSelected(item, e);
         }
 
+        /// <summary>
+        /// 取消选中项的视觉效果还原。
+        /// </summary>
+        /// <param name="e"></param>
         protected override void OnItemCanceled(AnnoPictureBox item, EventArgs e)
         {
-            item.BackColor = SystemColors.Control;
+            item.Paint -= SelectedItemPaint;
+            item.Invalidate();
             base.OnItemCanceled(item, e);
         }
 
@@ -134,6 +140,11 @@ namespace WhAnno.PictureShow
         {
             MessagePrint.Add("info", "鼠标: " + e.Location.ToString());
             base.OnMouseMove(e);
+        }
+
+        private void SelectedItemPaint(object sender, PaintEventArgs pe)
+        {
+            pe.Graphics.DrawRectangle(new Pen(Color.IndianRed, 4), (sender as Control).ClientRectangle);
         }
 
         //Overridable

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using WhAnno.Anno.Base;
 using WhAnno.Utils;
+using WhAnno.Utils.Expend;
 
 namespace WhAnno.PictureShow
 {
@@ -26,7 +27,7 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 图片的标注。
         /// </summary>
-        public List<object> Annotations { get; } = new List<object>();
+        public List<AnnotationBase> Annotations { get; } = new List<AnnotationBase>();
         /// <summary>
         /// 要绘制的索引值。
         /// </summary>
@@ -107,8 +108,16 @@ namespace WhAnno.PictureShow
         /// 
         public void PaintAnnos(Graphics g, ICoorConverter cvt = null)
         {
-            foreach (AnnotationBase anno in Annotations)
-                anno.CreatBrush().PaintAnno(g, anno, cvt);
+            Color[] colors = ColorList.Linspace(Annotations.Count);
+            for (int i = 0; i < Annotations.Count; i++)
+            {
+                BrushBase brush = Annotations[i].CreatBrush();
+                brush.pen = new Pen(colors[i], 2);
+                brush.PaintAnno(g, Annotations[i], cvt);
+
+            }
+            //foreach (AnnotationBase anno in Annotations)
+            //    anno.CreatBrush().PaintAnno(g, anno, cvt);
         }
 
         protected override void OnPaint(PaintEventArgs pe)

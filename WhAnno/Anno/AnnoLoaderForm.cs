@@ -15,6 +15,7 @@ using WhAnno.Anno;
 using WhAnno.Utils;
 using WhAnno.Anno.Base;
 using System.Collections;
+using WhAnno.Utils.Expend;
 
 namespace WhAnno
 {
@@ -134,8 +135,6 @@ namespace WhAnno
         {
             //移除消息打印
             MessagePrint.SolveMessage -= PrintStatus;
-            //结束UniqueAsyncProcess
-            UniqueAsyncProcess.End();
             base.OnClosed(e);
         }
 
@@ -175,6 +174,8 @@ namespace WhAnno
 
         void IDisposable.Dispose()
         {
+            //结束UniqueAsyncProcess
+            UniqueAsyncProcess.End();
             Annotations = null;
             Dispose();
             GC.Collect();

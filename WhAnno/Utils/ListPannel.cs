@@ -136,6 +136,17 @@ namespace WhAnno.Utils
         /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
         public ListPannel(bool shareMouseEvent = true)
         {
+            //获取焦点时的视觉边框
+            {
+                SetStyle(ControlStyles.ResizeRedraw, true);
+                Paint += (sender, pe) =>
+                {
+                    if (Focused) pe.Graphics.DrawRectangle(new Pen(SystemColors.ActiveCaption, 4), ClientRectangle);
+                };
+                GotFocus += (sender, e) => Invalidate();
+                LostFocus += (sender, e) => Invalidate();
+            }
+
             //绑定子控件触发ListPannel事件
             {
                 void Click(object _sender, EventArgs _e) => OnItemClick(_sender as ItemType, _e);

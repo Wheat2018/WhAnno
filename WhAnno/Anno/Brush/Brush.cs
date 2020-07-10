@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using WhAnno.Utils;
 using WhAnno.Anno.Base;
 using System.Diagnostics;
+using WhAnno.Utils.Expend;
 
 namespace WhAnno.Anno.Base
 {
@@ -55,6 +56,29 @@ namespace WhAnno.Anno.Base
         /// <param name="cvt">坐标变换规则</param>
         /// 
         public abstract void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null);
+        /// <summary>
+        /// 生成当前画笔所构造的标注。
+        /// </summary>
+        /// <returns>当前画笔所构造的标注，如果画笔未准备好，将返回null</returns>
+        public abstract AnnotationBase GenerateAnnotation();
+
+        /// <summary>
+        /// 鼠标按下事件委托。
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        /// <param name="cvt">坐标变换规则</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
+        public virtual bool DelegateMouseDown(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        public virtual bool DelegateMouseMove(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        public virtual bool DelegateMouseUp(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        public virtual bool DelegateMouseWheel(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        public virtual bool DelegateMouseEnter(object sender, EventArgs e, ICoorConverter cvt = null) => true;
+        public virtual bool DelegateMouseLeave(object sender, EventArgs e, ICoorConverter cvt = null) => true;
+        public virtual bool DelegateMouseHover(object sender, EventArgs e, ICoorConverter cvt = null) => true;
+        public virtual bool DelegateProcessCmdKey(object sender, ref Message msg, Keys keyData, ICoorConverter cvt = null) => true;
+        public virtual void DelegateKeyPress(object sender, KeyPressEventArgs e, ICoorConverter cvt = null) {; }
+        public virtual void DelegatePaint(object sender, PaintEventArgs e, ICoorConverter cvt = null) {; }
 
         //Methods
         /// <summary>
@@ -227,13 +251,155 @@ namespace WhAnno.Anno.Brush
         public class Annotation : AnnotationBase
         {
             public int x, y, width, height;
+
+            public override string ToString() => "{" + $"{x},{y},{width},{height}" + "}";
         }
+
+        /// <summary>
+        /// 指示<see cref="Rectangle"/>画笔当前状态。
+        /// </summary>
+        public enum BrushStatus 
+        {
+            /// <summary>
+            /// 未生成任何标注。
+            /// </summary>
+            Free = 0,
+            /// <summary>
+            /// 正在建立标注中。
+            /// </summary>
+            Building = 1,
+            /// <summary>
+            /// 标注已建立，待调整。
+            /// </summary>
+            Tuning = 2
+        }
+
+        public BrushStatus Status { get; private set; } = BrushStatus.Free;
+        public Annotation TempAnno { get; private set; } = new Annotation() { width = 10, height = 10 };
+
+        private bool tempFinished = false;
+        private System.Drawing.Point downPoint;
 
         //Properties
         /// <summary>
         /// 绘制画笔图标的线条宽度。
         /// </summary>
         public int IconLineWidth { get; set; } = 2;
+
+
+        //Override
+        public override bool DelegateMouseDown(object sender, MouseEventArgs e, ICoorConverter cvt = null)
+        {
+            if (Utils.Judge.MouseEvent.Left(e))
+            {
+                System.Drawing.Point point = e.Location;
+                if (cvt != null) point = cvt.ReConvert(point);
+                downPoint = point;
+            }
+
+            return true;
+        }
+
+        public override bool DelegateMouseMove(object sender, MouseEventArgs e, ICoorConverter cvt = null)
+        {
+            if ((ModifierKeys & Keys.Control) == Keys.Control) return true;
+
+            System.Drawing.Point point = e.Location;
+            if (cvt != null) point = cvt.ReConvert(point);
+
+            if (Utils.Judge.MouseEvent.Left(e))
+            {
+                System.Drawing.Rectangle rect = RectangleTransform.FromTwoPoints(downPoint, point);
+
+                TempAnno = new Annotation()
+                {
+                    x = rect.X,
+                    y = rect.Y,
+                    width = rect.Width,
+                    height = rect.Height
+                };
+                (sender as Control).Invalidate();
+                MessagePrint.Add("status", TempAnno.ToString());
+                return false;
+            }
+            else if (e.Button == MouseButtons.None && TempAnno != null)
+            {
+                TempAnno = new Annotation()
+                {
+                    x = point.X - TempAnno.width / 2,
+                    y = point.Y - TempAnno.height / 2,
+                    width = TempAnno.width,
+                    height = TempAnno.height
+                };
+                (sender as Control).Invalidate();
+                MessagePrint.Add("status", TempAnno.ToString());
+                return false;
+            }
+
+            return true;
+        }
+
+        public override bool DelegateMouseUp(object sender, MouseEventArgs e, ICoorConverter cvt = null)
+        {
+            if (Utils.Judge.MouseEvent.Left(e))
+            {
+                //TempAnno = null;
+
+                (sender as Control).Invalidate();
+            }
+            return true;
+        }
+
+        public override bool DelegateProcessCmdKey(object sender, ref Message msg, Keys keyData, ICoorConverter cvt = null)
+        {
+            if (TempAnno != null)
+            {
+                switch (keyData)
+                {
+                    case Keys.W:
+                    case Keys.Up:
+                        TempAnno.height++;
+                        break;
+                    case Keys.S:
+                    case Keys.Down:
+                        TempAnno.height = Math.Max(0, TempAnno.height - 1);
+                        break;
+                    case Keys.D:
+                    case Keys.Right:
+                        TempAnno.width++;
+                        break;
+                    case Keys.A:
+                    case Keys.Left:
+                        TempAnno.width = Math.Max(0, TempAnno.width - 1);
+                        break;
+
+                    default:
+                        break;
+                }
+                (sender as Control).Invalidate();
+                return false;
+            }
+
+            return true;
+        }
+
+        public override void DelegatePaint(object sender, PaintEventArgs e, ICoorConverter cvt = null)
+        {
+            if (TempAnno != null)
+                PaintAnno(e.Graphics, TempAnno, cvt);
+
+        }
+
+        //Icon Paint
+        protected override void OnPaint(PaintEventArgs pe)
+        {
+            pe.Graphics.SmoothingMode = SmoothingMode.HighQuality;
+
+            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(
+                ClientSize.Width / 6, ClientSize.Height / 4, ClientSize.Width * 2 / 3, ClientSize.Height / 2);
+            pe.Graphics.DrawRectangle(new Pen(ForeColor, IconLineWidth), rect);
+            base.OnPaint(pe);
+        }
 
         //Abstract Implement
         public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
@@ -254,15 +420,10 @@ namespace WhAnno.Anno.Brush
             g.DrawPolygon(pen, rect);
         }
 
-        //Icon Paint
-        protected override void OnPaint(PaintEventArgs pe)
+        public override AnnotationBase GenerateAnnotation()
         {
-            pe.Graphics.SmoothingMode = SmoothingMode.HighQuality;
-
-            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(
-                ClientSize.Width / 6, ClientSize.Height / 4, ClientSize.Width * 2 / 3, ClientSize.Height / 2);
-            pe.Graphics.DrawRectangle(new Pen(ForeColor, IconLineWidth), rect);
-            base.OnPaint(pe);
+            if (Status == BrushStatus.Tuning) return TempAnno;
+            return null;
         }
 
     }
@@ -297,6 +458,10 @@ namespace WhAnno.Anno.Brush
 
             throw new NotImplementedException();
         }
+        public override AnnotationBase GenerateAnnotation()
+        {
+            throw new NotImplementedException();
+        }
 
         //Icon Paint
         protected override void OnPaint(PaintEventArgs pe)
@@ -329,6 +494,11 @@ namespace WhAnno.Anno.Brush
 
         //Abstract Implement
         public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override AnnotationBase GenerateAnnotation()
         {
             throw new NotImplementedException();
         }

@@ -504,6 +504,40 @@ namespace WhAnno.Utils
         public static int HorizonHeight => SystemInformation.HorizontalScrollBarHeight;
     }
 
+    public static class ColorList
+    {
+        /// <summary>
+        /// 获取线性等分的颜色表。
+        /// </summary>
+        /// <param name="n">数目</param>
+        /// <returns>数量为<paramref name="n"/>的颜色表</returns>
+        public static Color[] Linspace(int n)
+        {
+            return Linspace(Color.Red, Color.Cyan, n);
+        }
+
+        /// <summary>
+        /// 获取线性等分的颜色表。
+        /// </summary>
+        /// <param name="color1">起始颜色</param>
+        /// <param name="color2">终止颜色</param>
+        /// <param name="n">数目</param>
+        /// <returns>数量为<paramref name="n"/>的颜色表</returns>
+        public static Color[] Linspace(Color color1, Color color2, int n)
+        {
+            Color[] result = new Color[n];
+            int first = color1.ToArgb();
+            int last = color2.ToArgb();
+            for (int i = 0; i < n; i++)
+            {
+                result[i] = Color.FromArgb((int)(first + (i + 1) * (long)(first - last) / n));
+            }
+
+            return result;
+        }
+
+    }
+
     namespace Judge
     {
         public static class MouseEvent
@@ -535,223 +569,239 @@ namespace WhAnno.Utils
     }
 
     /// <summary>
-    /// <see cref="ProgressBar"/>颜色。
+    /// 为某些类拓展一些方法。
     /// </summary>
-    public enum ProgressBarColor { Green = 1, Red, Yellow }
-    /// <summary>
-    /// 拓展<see cref="ProgressBar"/>的SetColor方法
-    /// </summary>
-    public static class ModifyProgressBarColor
-    {
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
-        static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr w, IntPtr l);
-
-        /// <summary>
-        /// 设置进度条颜色。
-        /// </summary>
-        /// <param name="bar">进度条实例</param>
-        /// <param name="color">进度条颜色</param>
-        public static void SetColor(this ProgressBar bar, ProgressBarColor color)
-        {
-            SendMessage(bar.Handle, 1040, (IntPtr)color, IntPtr.Zero);
-        }
-    }
-
-    /// <summary>
-    /// 为<see cref="string"/>拓展一些方法
-    /// </summary>
-    public static class StringMethods
+    namespace Expend
     {
         /// <summary>
-        /// 获取目标索引的字符在整个字符串中位于第几行(Y)第几列(X)。
+        /// <see cref="ProgressBar"/>颜色。
         /// </summary>
-        /// <param name="str">字符串实例</param>
-        /// <param name="index">目标索引</param>
-        /// <returns></returns>
-        public static Point CoorOf(this string str, int index)
+        public enum ProgressBarColor { Green = 1, Red, Yellow }
+        /// <summary>
+        /// 拓展<see cref="ProgressBar"/>的SetColor方法
+        /// </summary>
+        public static class ModifyProgressBarColor
         {
-            int rows = 0, feedPoint = 0;
-            for (int i = 0; i < index; i++)
+            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
+            static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr w, IntPtr l);
+
+            /// <summary>
+            /// 设置进度条颜色。
+            /// </summary>
+            /// <param name="bar">进度条实例</param>
+            /// <param name="color">进度条颜色</param>
+            public static void SetColor(this ProgressBar bar, ProgressBarColor color)
             {
-                if (str[i] == '\n')
+                SendMessage(bar.Handle, 1040, (IntPtr)color, IntPtr.Zero);
+            }
+        }
+
+        /// <summary>
+        /// 为<see cref="string"/>拓展一些方法
+        /// </summary>
+        public static class StringMethods
+        {
+            /// <summary>
+            /// 获取目标索引的字符在整个字符串中位于第几行(Y)第几列(X)。
+            /// </summary>
+            /// <param name="str">字符串实例</param>
+            /// <param name="index">目标索引</param>
+            /// <returns></returns>
+            public static Point CoorOf(this string str, int index)
+            {
+                int rows = 0, feedPoint = 0;
+                for (int i = 0; i < index; i++)
                 {
-                    rows++;
-                    feedPoint = i;
+                    if (str[i] == '\n')
+                    {
+                        rows++;
+                        feedPoint = i;
+                    }
                 }
+                return new Point(index - feedPoint, rows);
             }
-            return new Point(index - feedPoint, rows);
-        }
 
-        /// <summary>
-        /// 检测目标字符串是否为该字符串的结尾子字符串。
-        /// </summary>
-        /// <param name="str">字符串实例</param>
-        /// <param name="dst">目标字符串</param>
-        /// <returns></returns>
-        public static bool TailContains(this string str, string dst)
-        {
-            if (dst.Length > str.Length) return false;
-            return str.IndexOf(dst) == str.Length - dst.Length;
-        }
-
-        /// <summary>
-        /// 获取字符串中每一行。
-        /// </summary>
-        /// <param name="str"></param>
-        /// <returns></returns>
-        public static string[] GetLines(this string str)
-        {
-            List<string> result = new List<string>();
-            int lastIndex = 0;
-            do
+            /// <summary>
+            /// 检测目标字符串是否为该字符串的结尾子字符串。
+            /// </summary>
+            /// <param name="str">字符串实例</param>
+            /// <param name="dst">目标字符串</param>
+            /// <returns></returns>
+            public static bool TailContains(this string str, string dst)
             {
-                int index = str.IndexOf('\n', lastIndex);
-                if (index == -1)
+                if (dst.Length > str.Length) return false;
+                return str.IndexOf(dst) == str.Length - dst.Length;
+            }
+
+            /// <summary>
+            /// 获取字符串中每一行。
+            /// </summary>
+            /// <param name="str"></param>
+            /// <returns></returns>
+            public static string[] GetLines(this string str)
+            {
+                List<string> result = new List<string>();
+                int lastIndex = 0;
+                do
                 {
-                    if (lastIndex <= str.Length) result.Add(str.Substring(lastIndex, str.Length - lastIndex));
-                    break;
+                    int index = str.IndexOf('\n', lastIndex);
+                    if (index == -1)
+                    {
+                        if (lastIndex <= str.Length) result.Add(str.Substring(lastIndex, str.Length - lastIndex));
+                        break;
+                    }
+                    result.Add(str.Substring(lastIndex, index - lastIndex));
+                    lastIndex = index + 1;
+                } while (lastIndex <= str.Length);
+                return result.ToArray();
+            }
+
+            /// <summary>
+            /// 返回表示每个对象的字符串数组。
+            /// </summary>
+            /// <typeparam name="T"></typeparam>
+            /// <param name="objs"></param>
+            /// <returns></returns>
+            public static string[] ToStringArray<T>(this T objs) where T : ICollection
+            {
+                string[] result = new string[objs.Count];
+                int i = 0;
+                foreach (object obj in objs)
+                {
+                    if (obj == null) result[i] = "";
+                    else result[i] = obj.ToString();
+                    i++;
                 }
-                result.Add(str.Substring(lastIndex, index - lastIndex));
-                lastIndex = index + 1;
-            } while (lastIndex <= str.Length);
-            return result.ToArray();
-        }
-
-        /// <summary>
-        /// 返回表示每个对象的字符串数组。
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="objs"></param>
-        /// <returns></returns>
-        public static string[] ToStringArray<T>(this T objs) where T : ICollection
-        {
-            string[] result = new string[objs.Count];
-            int i = 0;
-            foreach (object obj in objs)
-            {
-                if (obj == null) result[i] = "";
-                else result[i] = obj.ToString();
-                i++;
+                return result;
             }
-            return result;
-        }
-    }
-
-    /// <summary>
-    /// 为<see cref="Array"/>扩展一些方法
-    /// </summary>
-    public static class ArrayMethods
-    {
-        /// <summary>
-        /// 获取子数组，其中每个对象都为浅拷贝。
-        /// </summary>
-        /// <param name="objs"></param>
-        /// <param name="startIndex">起始索引值</param>
-        /// <param name="length">子数组长度</param>
-        /// <returns></returns>
-        public static T[] SubArray<T>(this T[] objs, int startIndex, int length)
-        {
-            T[] result = new T[length];
-            for (int i = 0; i < length; i++)
-                result[i] = objs[startIndex + i];
-            return result;
         }
 
         /// <summary>
-        /// 获取子数组，其中每个对象都为浅拷贝。
+        /// 为<see cref="Array"/>扩展一些方法
         /// </summary>
-        /// <param name="objs"></param>
-        /// <param name="length">子数组长度</param>
-        /// <returns></returns>
-        public static T[] SubArray<T>(this T[] objs, int length) => objs.SubArray(0, length);
-
-        /// <summary>
-        /// 在一个一维数组中以特定比对方法搜索指定对象，并返回其首个匹配项的索引。
-        /// </summary>
-        /// <typeparam name="T">数组元素的类型。</typeparam>
-        /// <param name="array">要搜索的从零开始的一维数组。</param>
-        /// <param name="value">要在 array 中查找的对象。</param>
-        /// <param name="equals">比对两个对象是否相等的方法。</param>
-        /// <returns>如果在整个 array 中找到 value 的第一个匹配项，则为该项的从零开始的索引；否则为 -1。</returns>
-        /// <exception cref="ArgumentNullException">array 为 null。</exception>
-        public static int IndexOf<T>(T[] array, T value, Func<T, T, bool> equals)
+        public static class ArrayMethods
         {
-            if (array is null) throw new ArgumentException("array 为 null。");
-            for (int i = 0; i < array.Length; i++)
-                if (equals(array[i], value)) return i;
-            return -1;
-        }
-    }
-
-    /// <summary>
-    /// 为<see cref="Rectangle"/>矩形类拓展一种转换方式。
-    /// </summary>
-    public static class RectangleConverter
-    {
-        /// <summary>
-        /// 将矩形按逆时针转换成四个点的数组
-        /// </summary>
-        /// <param name="rect">矩形实例</param>
-        /// <returns></returns>
-        public static Point[] ConvertToQuadraPoints(this Rectangle rect)
-        {
-            Point[] result = new Point[4];
-            result[0] = new Point(rect.X, rect.Y);
-            result[2] = new Point(rect.X + rect.Width, rect.Y + rect.Height);
-            result[1] = new Point(result[2].X, result[0].Y);
-            result[3] = new Point(result[0].X, result[2].Y);
-            return result;
-        }
-    }
-
-    /// <summary>
-    /// 字段排序方式。
-    /// </summary>
-    public enum FieldsOrder 
-    {
-        /// <summary>
-        /// 子类字段在前，基类字段在后。
-        /// </summary>
-        SubToBase = 0,
-        /// <summary>
-        /// 基类字段在前，子类字段在后。
-        /// </summary>
-        BaseToSub = 1
-    }
-    /// <summary>
-    /// 为<see cref="Type.GetFields"/>方法添加一种重载，支持返回的字段数组按照指定顺序排序。
-    /// </summary>
-    public static class TypeGetFields
-    {
-        public static FieldInfo[] GetFields(this Type type) => type.GetFields(FieldsOrder.BaseToSub);
-
-        /// <summary>
-        /// 按照指定排序顺序获取当前<see cref="Type"/>的所有字段
-        /// </summary>
-        /// <param name="type"><see cref="Type"/>实例</param>
-        /// <param name="order">排序方式</param>
-        /// <returns></returns>
-        public static FieldInfo[] GetFields(this Type type, FieldsOrder order)
-        {
-            if (order == FieldsOrder.SubToBase) return type.GetFields();
-
-            List<Type> tree = new List<Type>();
-            Type temp = type;
-            while(temp != null)
+            /// <summary>
+            /// 获取子数组，其中每个对象都为浅拷贝。
+            /// </summary>
+            /// <param name="objs"></param>
+            /// <param name="startIndex">起始索引值</param>
+            /// <param name="length">子数组长度</param>
+            /// <returns></returns>
+            public static T[] SubArray<T>(this T[] objs, int startIndex, int length)
             {
-                tree.Add(temp);
-                temp = temp.BaseType;
+                T[] result = new T[length];
+                for (int i = 0; i < length; i++)
+                    result[i] = objs[startIndex + i];
+                return result;
             }
-            tree.Reverse();
 
-            List<FieldInfo> result = new List<FieldInfo>();
-            foreach (Type item in tree)
+            /// <summary>
+            /// 获取子数组，其中每个对象都为浅拷贝。
+            /// </summary>
+            /// <param name="objs"></param>
+            /// <param name="length">子数组长度</param>
+            /// <returns></returns>
+            public static T[] SubArray<T>(this T[] objs, int length) => objs.SubArray(0, length);
+
+            /// <summary>
+            /// 在一个一维数组中以特定比对方法搜索指定对象，并返回其首个匹配项的索引。
+            /// </summary>
+            /// <typeparam name="T">数组元素的类型。</typeparam>
+            /// <param name="array">要搜索的从零开始的一维数组。</param>
+            /// <param name="value">要在 array 中查找的对象。</param>
+            /// <param name="equals">比对两个对象是否相等的方法。</param>
+            /// <returns>如果在整个 array 中找到 value 的第一个匹配项，则为该项的从零开始的索引；否则为 -1。</returns>
+            /// <exception cref="ArgumentNullException">array 为 null。</exception>
+            public static int IndexOf<T>(T[] array, T value, Func<T, T, bool> equals)
             {
-                foreach (FieldInfo field in type.GetFields())
-                    if (field.DeclaringType == item)
-                        result.Add(field);
+                if (array is null) throw new ArgumentException("array 为 null。");
+                for (int i = 0; i < array.Length; i++)
+                    if (equals(array[i], value)) return i;
+                return -1;
             }
-            return result.ToArray();
+        }
+
+        /// <summary>
+        /// 为<see cref="Rectangle"/>矩形类拓展一种转换方式。
+        /// </summary>
+        public static class RectangleTransform
+        {
+            /// <summary>
+            /// 将矩形按逆时针转换成四个点的数组
+            /// </summary>
+            /// <param name="rect">矩形实例</param>
+            /// <returns></returns>
+            public static Point[] ConvertToQuadraPoints(this Rectangle rect)
+            {
+                Point[] result = new Point[4];
+                result[0] = new Point(rect.X, rect.Y);
+                result[2] = new Point(rect.X + rect.Width, rect.Y + rect.Height);
+                result[1] = new Point(result[2].X, result[0].Y);
+                result[3] = new Point(result[0].X, result[2].Y);
+                return result;
+            }
+
+            public static Rectangle FromTwoPoints(Point point1, Point point2)
+            {
+                return new Rectangle(
+                    Math.Min(point1.X, point2.X),
+                    Math.Min(point1.Y, point2.Y),
+                    Math.Abs(point1.X - point2.X),
+                    Math.Abs(point1.Y - point2.Y)
+                    );
+            }
+        }
+
+        /// <summary>
+        /// 字段排序方式。
+        /// </summary>
+        public enum FieldsOrder 
+        {
+            /// <summary>
+            /// 子类字段在前，基类字段在后。
+            /// </summary>
+            SubToBase = 0,
+            /// <summary>
+            /// 基类字段在前，子类字段在后。
+            /// </summary>
+            BaseToSub = 1
+        }
+        /// <summary>
+        /// 为<see cref="Type.GetFields"/>方法添加一种重载，支持返回的字段数组按照指定顺序排序。
+        /// </summary>
+        public static class TypeGetFields
+        {
+            public static FieldInfo[] GetFields(this Type type) => type.GetFields(FieldsOrder.BaseToSub);
+
+            /// <summary>
+            /// 按照指定排序顺序获取当前<see cref="Type"/>的所有字段
+            /// </summary>
+            /// <param name="type"><see cref="Type"/>实例</param>
+            /// <param name="order">排序方式</param>
+            /// <returns></returns>
+            public static FieldInfo[] GetFields(this Type type, FieldsOrder order)
+            {
+                if (order == FieldsOrder.SubToBase) return type.GetFields();
+
+                List<Type> tree = new List<Type>();
+                Type temp = type;
+                while(temp != null)
+                {
+                    tree.Add(temp);
+                    temp = temp.BaseType;
+                }
+                tree.Reverse();
+
+                List<FieldInfo> result = new List<FieldInfo>();
+                foreach (Type item in tree)
+                {
+                    foreach (FieldInfo field in type.GetFields())
+                        if (field.DeclaringType == item)
+                            result.Add(field);
+                }
+                return result.ToArray();
+            }
         }
     }
 }

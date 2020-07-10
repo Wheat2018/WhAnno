@@ -86,6 +86,7 @@ namespace WhAnno.Anno
         //Fields
         private Point imageLocation = new Point();
         private Size imageSize = new Size();
+        private MouseEventArgs imageTranslationTemp = null;
 
         //Event
         /// <summary>
@@ -106,27 +107,15 @@ namespace WhAnno.Anno
                 true);
             BorderStyle = BorderStyle.FixedSingle;
 
-            //图像平移
-            MouseEventArgs mouseDownEventArgs = null;
-            Point imageLocation = default;
-            MouseDown += (sender, e) =>
+            //获取焦点时的视觉边框
             {
-                mouseDownEventArgs = e;
-                imageLocation = ImageLocation;
-            };
-            MouseMove += (sender, e) =>
-            {
-                if (Utils.Judge.MouseEvent.Middle(e))
+                Paint += (sender, pe) =>
                 {
-                    Cursor = Cursors.SizeAll;
-                    Point delta = new Point(e.X - mouseDownEventArgs.X, e.Y - mouseDownEventArgs.Y);
-                    ImageLocation = new Point(imageLocation.X + delta.X, imageLocation.Y + delta.Y);
-                    MessagePrint.Add("info", "Delta：" + delta.ToString());
-                }
-                else
-                    Cursor = Cursors.Default;
-
-            };
+                    if (Focused) pe.Graphics.DrawRectangle(new Pen(SystemColors.ActiveCaption, 4), ClientRectangle);
+                };
+                GotFocus += (sender, e) => Invalidate();
+                LostFocus += (sender, e) => Invalidate();
+            }
         }
 
         public void ResetImageBounds() => ImageBounds = ImageZoomDefaultBounds;
@@ -150,24 +139,27 @@ namespace WhAnno.Anno
             ImageChanged?.Invoke(this, e);
         }
 
+
+        //Override
         protected override void OnPaint(PaintEventArgs pe)
         {
             if (Image != null) pe.Graphics.DrawImage(Image, ImageBounds);
 
             pe.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-
             AnnoPicture?.PaintAnnos(pe.Graphics, this);
 
+            AnnoBrush?.DelegatePaint(this, pe, this);
             base.OnPaint(pe);
         }
 
-        //Override
         /// <summary>
         /// 图像缩放。
         /// </summary>
         /// <param name="e"></param>
         protected override void OnMouseWheel(MouseEventArgs e)
         {
+            if (AnnoBrush != null && !AnnoBrush.DelegateMouseWheel(this, e, this)) return;
+
             PointF anchorPoint = PointToRawImageF(e.Location);
 
             float sca = ImageScale.Width * (1.0f + e.Delta / 1200f);
@@ -180,6 +172,83 @@ namespace WhAnno.Anno
             ImageLocation = new Point(ImageLocation.X - (anchorPointToClient.X - e.X), ImageLocation.Y - (anchorPointToClient.Y - e.Y));
             MessagePrint.Add("", "放大" + ImageScale.ToString());
             base.OnMouseWheel(e);
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            Focus();
+            if (AnnoBrush != null && !AnnoBrush.DelegateMouseDown(this, e, this)) return;
+
+            base.OnMouseDown(e);
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            if (AnnoBrush != null && !AnnoBrush.DelegateMouseMove(this, e, this)) return;
+
+            //图像平移
+            {
+                if (Utils.Judge.MouseEvent.Middle(e))
+                {
+                    Cursor = Cursors.SizeAll;
+                    if (imageTranslationTemp != null)
+                    {
+                        Size delta = new Size(e.X - imageTranslationTemp.X, e.Y - imageTranslationTemp.Y);
+                        ImageLocation = Point.Add(ImageLocation, delta);
+                        MessagePrint.Add("info", "Delta：" + delta.ToString());
+                    }
+                    imageTranslationTemp = e;
+                }
+                else
+                {
+                    Cursor = Cursors.Default;
+                    imageTranslationTemp = null;
+                }
+            }
+
+            base.OnMouseMove(e);
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            if (AnnoBrush != null && !AnnoBrush.DelegateMouseUp(this, e, this)) return;
+
+            base.OnMouseUp(e);
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            if (AnnoBrush != null && !AnnoBrush.DelegateMouseEnter(this, e, this)) return;
+
+            base.OnMouseEnter(e);
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            if (AnnoBrush != null && !AnnoBrush.DelegateMouseLeave(this, e, this)) return;
+
+            base.OnMouseLeave(e);
+        }
+
+        protected override void OnMouseHover(EventArgs e)
+        {
+            if (AnnoBrush != null && !AnnoBrush.DelegateMouseHover(this, e, this)) return;
+
+            base.OnMouseHover(e);
+        }
+
+        protected override void OnKeyPress(KeyPressEventArgs e)
+        {
+            AnnoBrush?.DelegateKeyPress(this, e, this);
+
+            base.OnKeyPress(e);
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (AnnoBrush != null && !AnnoBrush.DelegateProcessCmdKey(this, ref msg, keyData, this)) return true;
+
+            return base.ProcessCmdKey(ref msg, keyData);
         }
 
         //Implement Details
@@ -245,7 +314,7 @@ namespace WhAnno.Anno
         protected Point PointToRawImage(Point point)
         {
             PointF result = PointToRawImageF(point);
-            return new Point((int)result.X, (int)result.Y);
+            return new Point((int)(result.X + 0.5), (int)(result.Y + 0.5));
         }
         /// <summary>
         /// 将<see cref="Canva"/>上的坐标转换为原图像坐标。
@@ -278,7 +347,7 @@ namespace WhAnno.Anno
             if (Image == null) return new Point();
 
             point = new PointF(ImageSize.Width * point.X / Image.Width, ImageSize.Height * point.Y / Image.Height);
-            Point result = new Point((int)point.X, (int)point.Y);
+            Point result = new Point((int)(point.X + 0.5), (int)(point.Y + 0.5));
             return new Point(result.X + ImageLocation.X, result.Y + ImageLocation.Y);
         }
         /// <summary>
@@ -290,6 +359,8 @@ namespace WhAnno.Anno
 
         //Interface Implement
         Point ICoorConverter.Convert(Point point) => PointToCanvaClient(point);
+
+        Point ICoorConverter.ReConvert(Point point) => PointToRawImage(point);
 
         void IItemAcceptable<BrushBase>.Accept(BrushBase item)
         {
@@ -326,5 +397,6 @@ namespace WhAnno.Anno
 
             OnImageChanged(new EventArgs());
         }
+
     }
 }
