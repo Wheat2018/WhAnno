@@ -136,9 +136,10 @@ namespace WhAnno.Utils
         /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
         public ListPannel(bool shareMouseEvent = true)
         {
+            SetStyle(ControlStyles.ResizeRedraw, true);
+
             //获取焦点时的视觉边框
             {
-                SetStyle(ControlStyles.ResizeRedraw, true);
                 Paint += (sender, pe) =>
                 {
                     if (Focused) pe.Graphics.DrawRectangle(new Pen(SystemColors.ActiveCaption, 4), ClientRectangle);
@@ -292,6 +293,11 @@ namespace WhAnno.Utils
         public void Select(ItemType item) => CurrentItem = item;
 
         /// <summary>
+        /// 取消选中项。
+        /// </summary>
+        public void Cancel() => CurrentItem = null;
+
+        /// <summary>
         /// 清空所有项。
         /// </summary>
         /// <param name="fastClear">是否快速清空，不触发<see cref="ItemRemoved"/>事件。通常在被清空项即将被回收时使用。</param>
@@ -307,7 +313,6 @@ namespace WhAnno.Utils
                 while (Count > 0) Remove(GetItem(0));
             GC.Collect();
         }
-
 
         /// <summary>
         /// 对每个项应用操作
@@ -422,7 +427,6 @@ namespace WhAnno.Utils
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }
-
 
         //Implement Details
         /// <summary>

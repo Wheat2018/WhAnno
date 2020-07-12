@@ -139,7 +139,6 @@ namespace WhAnno.Anno
             ImageChanged?.Invoke(this, e);
         }
 
-
         //Override
         protected override void OnPaint(PaintEventArgs pe)
         {
@@ -152,25 +151,24 @@ namespace WhAnno.Anno
             base.OnPaint(pe);
         }
 
-        /// <summary>
-        /// 图像缩放。
-        /// </summary>
-        /// <param name="e"></param>
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             if (AnnoBrush != null && !AnnoBrush.DelegateMouseWheel(this, e, this)) return;
 
-            PointF anchorPoint = PointToRawImageF(e.Location);
+            //图像缩放
+            {
+                PointF anchorPoint = PointToRawImageF(e.Location);
 
-            float sca = ImageScale.Width * (1.0f + e.Delta / 1200f);
-            SizeF scale = new SizeF(sca, sca);
-            //if (scale.Width > 0.1 && scale.Width < 20 &&
-            //    scale.Height > 0.1 && scale.Height < 20) 
-                ImageScale = scale;
+                float sca = ImageScale.Width * (1.0f + e.Delta / 1200f);
+                SizeF scale = new SizeF(sca, sca);
+                //if (scale.Width > 0.1 && scale.Width < 20 &&
+                //    scale.Height > 0.1 && scale.Height < 20) 
+                    ImageScale = scale;
 
-            Point anchorPointToClient = PointFToCanvaClient(anchorPoint);
-            ImageLocation = new Point(ImageLocation.X - (anchorPointToClient.X - e.X), ImageLocation.Y - (anchorPointToClient.Y - e.Y));
-            MessagePrint.Add("", "放大" + ImageScale.ToString());
+                Point anchorPointToClient = PointFToCanvaClient(anchorPoint);
+                ImageLocation = new Point(ImageLocation.X - (anchorPointToClient.X - e.X), ImageLocation.Y - (anchorPointToClient.Y - e.Y));
+                GlobalMessage.Add("", "放大" + ImageScale.ToString());
+            }
             base.OnMouseWheel(e);
         }
 
@@ -195,7 +193,7 @@ namespace WhAnno.Anno
                     {
                         Size delta = new Size(e.X - imageTranslationTemp.X, e.Y - imageTranslationTemp.Y);
                         ImageLocation = Point.Add(ImageLocation, delta);
-                        MessagePrint.Add("info", "Delta：" + delta.ToString());
+                        GlobalMessage.Add("info", "Delta：" + delta.ToString());
                     }
                     imageTranslationTemp = e;
                 }
@@ -214,6 +212,13 @@ namespace WhAnno.Anno
             if (AnnoBrush != null && !AnnoBrush.DelegateMouseUp(this, e, this)) return;
 
             base.OnMouseUp(e);
+        }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            if (AnnoBrush != null && !AnnoBrush.DelegateMouseClick(this, e, this)) return;
+
+            base.OnMouseClick(e);
         }
 
         protected override void OnMouseEnter(EventArgs e)
@@ -237,6 +242,13 @@ namespace WhAnno.Anno
             base.OnMouseHover(e);
         }
 
+        protected override void OnClick(EventArgs e)
+        {
+            if (AnnoBrush != null && !AnnoBrush.DelegateClick(this, e, this)) return;
+
+            base.OnClick(e);
+        }
+
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
             AnnoBrush?.DelegateKeyPress(this, e, this);
@@ -248,6 +260,7 @@ namespace WhAnno.Anno
         {
             if (AnnoBrush != null && !AnnoBrush.DelegateProcessCmdKey(this, ref msg, keyData, this)) return true;
 
+            if (keyData == Keys.Escape) GlobalMessage.Add("brush cancel", null);
             return base.ProcessCmdKey(ref msg, keyData);
         }
 

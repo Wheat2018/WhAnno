@@ -114,7 +114,7 @@ namespace WhAnno.PictureShow
         {
             item.Paint += SelectedItemPaint;
             item.Invalidate();
-            MessagePrint.Add("status", "选中: " + CurrentItem.FileName);
+            GlobalMessage.Add("status", "选中: " + CurrentItem.FileName);
             base.OnItemSelected(item, e);
         }
 
@@ -138,7 +138,7 @@ namespace WhAnno.PictureShow
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            MessagePrint.Add("info", "鼠标: " + e.Location.ToString());
+            GlobalMessage.Add("info", "鼠标: " + e.Location.ToString());
             base.OnMouseMove(e);
         }
 

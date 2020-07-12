@@ -53,6 +53,7 @@ namespace WhAnno.PictureShow
             SizeMode = PictureBoxSizeMode.Zoom;
             BorderStyle = BorderStyle.FixedSingle;
             paintFileNameFont = paintIndexFont = Font;
+            Paint += PaintText;
         }
 
         public AnnoPictureBox(string filePath) : this() => SetPicture(filePath);
@@ -120,11 +121,13 @@ namespace WhAnno.PictureShow
             //    anno.CreatBrush().PaintAnno(g, anno, cvt);
         }
 
-        protected override void OnPaint(PaintEventArgs pe)
+        /// <summary>
+        /// 绘制<see cref="AnnoPictureBox"/>文本。
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="pe"></param>
+        protected void PaintText(object sender ,PaintEventArgs pe)
         {
-            if (Image == null) Load();
-            base.OnPaint(pe);
-
             pe.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
 
             SizeF size = pe.Graphics.MeasureString(FileName, paintFileNameFont);
@@ -152,6 +155,12 @@ namespace WhAnno.PictureShow
                                             Width - textSize.Width, 0);
                 }
             }
+        }
+
+        protected override void OnPaint(PaintEventArgs pe)
+        {
+            if (Image == null) Load();
+            base.OnPaint(pe);
         }
     }
 }

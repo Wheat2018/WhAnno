@@ -19,9 +19,9 @@ using System.Windows.Forms;
 namespace WhAnno.Utils
 {
     /// <summary>
-    /// 全局消息打印托管类。
+    /// 全局消息托管类。
     /// </summary>
-    public static class MessagePrint
+    public static class GlobalMessage
     {
         /// <summary>
         /// 消息类
@@ -41,14 +41,14 @@ namespace WhAnno.Utils
         private static Thread thread = null;
         private static readonly AutoResetEvent thread_suspend = new AutoResetEvent(false);
 
-        public delegate void MessageSolveMethod(string describe, object data);
+        public delegate void MessageHandler(string describe, object data);
         /// <summary>
         /// 消息处理方法
         /// </summary>
-        public static event MessageSolveMethod SolveMessage;
+        public static event MessageHandler Handlers;
 
         /// <summary>
-        /// 将新的待打印消息添加到队列。
+        /// 将新的待处理消息添加到队列。
         /// </summary>
         /// <param name="describe">消息归类</param>
         /// <param name="data">消息内容</param>
@@ -60,7 +60,7 @@ namespace WhAnno.Utils
                 {
                     if (thread == null)
                     {
-                        thread = new Thread(new ThreadStart(Solve))
+                        thread = new Thread(new ThreadStart(Run))
                         {
                             Name = "MessagePrint Unique Thread",
                             Priority = ThreadPriority.Lowest,
@@ -76,20 +76,20 @@ namespace WhAnno.Utils
         }
 
         /// <summary>
-        /// 将新的待打印消息添加到队列。
+        /// 将新的待处理消息添加到队列。
         /// </summary>
         /// <param name="data">消息内容</param>
         public static void Add(object data) => Add("", data);
 
         /// <summary>
-        /// 使用主调方线程立即处理待打印消息。
+        /// 使用主调方线程立即处理待处理消息。
         /// </summary>
         /// <param name="describe"></param>
         /// <param name="data"></param>
-        public static void Apply(string describe, object data) => OnSolveMessage(describe, data);
+        public static void Apply(string describe, object data) => OnHandleMessage(describe, data);
 
         /// <summary>
-        /// 使用主调方线程立即处理待打印消息。
+        /// 使用主调方线程立即处理待处理消息。
         /// </summary>
         /// <param name="data"></param>
         public static void Apply(object data) => Apply("", data);
@@ -99,12 +99,12 @@ namespace WhAnno.Utils
         /// </summary>
         /// <param name="describe">消息归类</param>
         /// <param name="data">消息内容</param>
-        private static void OnSolveMessage(string describe, object data)
+        private static void OnHandleMessage(string describe, object data)
         {
             Console.WriteLine(describe + ":" + data?.ToString());
             try
             {
-                SolveMessage?.Invoke(describe, data);
+                Handlers?.Invoke(describe, data);
             }
             catch (Exception ex)
             {
@@ -115,12 +115,12 @@ namespace WhAnno.Utils
         /// <summary>
         /// 处理消息线程主函数。
         /// </summary>
-        private static void Solve()
+        private static void Run()
         {
             while (true)
             {
                 if (messages.TryDequeue(out Message message))
-                    OnSolveMessage(message.describe, message.data);
+                    OnHandleMessage(message.describe, message.data);
                 else
                     thread_suspend.WaitOne();
             }
@@ -213,7 +213,7 @@ namespace WhAnno.Utils
         /// <summary>
         /// 捕获异常时应用的默认异常处理方法。
         /// </summary>
-        public static Action<Exception> CatchExceptionHandle { set; get; } = (ex) => { MessagePrint.Add("exception", ex.Message); };
+        public static Action<Exception> CatchExceptionHandle { set; get; } = (ex) => { GlobalMessage.Add("exception", ex.Message); };
 
         /// <summary>
         /// 生成异常安全（使用try-catch包围）的Action，并使用给定的方式处理异常。
@@ -593,6 +593,22 @@ namespace WhAnno.Utils
             public static void SetColor(this ProgressBar bar, ProgressBarColor color)
             {
                 SendMessage(bar.Handle, 1040, (IntPtr)color, IntPtr.Zero);
+            }
+        }
+
+        /// <summary>
+        /// 为<see cref="Color"/>拓展一些方法。
+        /// </summary>
+        public static class ColorMethods
+        {
+            /// <summary>
+            /// 取反色。
+            /// </summary>
+            /// <param name="color"><see cref="Color"/>实例</param>
+            /// <returns></returns>
+            public static Color GetReverse(this Color color)
+            {
+                return Color.FromArgb(color.A, 255 - color.R, 255 - color.G, 255 - color.B);
             }
         }
 

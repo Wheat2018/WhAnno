@@ -72,10 +72,12 @@ namespace WhAnno.Anno.Base
         public virtual bool DelegateMouseDown(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
         public virtual bool DelegateMouseMove(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
         public virtual bool DelegateMouseUp(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        public virtual bool DelegateMouseClick(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
         public virtual bool DelegateMouseWheel(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
         public virtual bool DelegateMouseEnter(object sender, EventArgs e, ICoorConverter cvt = null) => true;
         public virtual bool DelegateMouseLeave(object sender, EventArgs e, ICoorConverter cvt = null) => true;
         public virtual bool DelegateMouseHover(object sender, EventArgs e, ICoorConverter cvt = null) => true;
+        public virtual bool DelegateClick(object sender, EventArgs e, ICoorConverter cvt = null) => true;
         public virtual bool DelegateProcessCmdKey(object sender, ref Message msg, Keys keyData, ICoorConverter cvt = null) => true;
         public virtual void DelegateKeyPress(object sender, KeyPressEventArgs e, ICoorConverter cvt = null) {; }
         public virtual void DelegatePaint(object sender, PaintEventArgs e, ICoorConverter cvt = null) {; }
@@ -147,7 +149,7 @@ namespace WhAnno.Anno.Base
         /// <summary>
         /// 标注类别。
         /// </summary>
-        public string category = "";
+        public string category = "default";
 
         //Methods
         /// <summary>
@@ -309,31 +311,37 @@ namespace WhAnno.Anno.Brush
 
             if (Utils.Judge.MouseEvent.Left(e))
             {
-                System.Drawing.Rectangle rect = RectangleTransform.FromTwoPoints(downPoint, point);
+                if (Status == BrushStatus.Free || Status == BrushStatus.Building)
+                {
+                    Status = BrushStatus.Building;
+                    System.Drawing.Rectangle rect = RectangleTransform.FromTwoPoints(downPoint, point);
 
-                TempAnno = new Annotation()
-                {
-                    x = rect.X,
-                    y = rect.Y,
-                    width = rect.Width,
-                    height = rect.Height
-                };
-                (sender as Control).Invalidate();
-                MessagePrint.Add("status", TempAnno.ToString());
-                return false;
+                    TempAnno = new Annotation()
+                    {
+                        x = rect.X,
+                        y = rect.Y,
+                        width = rect.Width,
+                        height = rect.Height
+                    };
+                    (sender as Control).Invalidate();
+                    GlobalMessage.Add("status", TempAnno.ToString());
+                }
             }
-            else if (e.Button == MouseButtons.None && TempAnno != null)
+            else if (e.Button == MouseButtons.None)
             {
-                TempAnno = new Annotation()
+                if (Status == BrushStatus.Free && TempAnno != null)
                 {
-                    x = point.X - TempAnno.width / 2,
-                    y = point.Y - TempAnno.height / 2,
-                    width = TempAnno.width,
-                    height = TempAnno.height
-                };
-                (sender as Control).Invalidate();
-                MessagePrint.Add("status", TempAnno.ToString());
-                return false;
+
+                    TempAnno = new Annotation()
+                    {
+                        x = point.X - TempAnno.width / 2,
+                        y = point.Y - TempAnno.height / 2,
+                        width = TempAnno.width,
+                        height = TempAnno.height
+                    };
+                    (sender as Control).Invalidate();
+                    GlobalMessage.Add("status", TempAnno.ToString());
+                }
             }
 
             return true;
@@ -341,12 +349,17 @@ namespace WhAnno.Anno.Brush
 
         public override bool DelegateMouseUp(object sender, MouseEventArgs e, ICoorConverter cvt = null)
         {
-            if (Utils.Judge.MouseEvent.Left(e))
+            switch (e.Button)
             {
-                //TempAnno = null;
-
-                (sender as Control).Invalidate();
+                case MouseButtons.Left:
+                    if (Status == BrushStatus.Free) Status = BrushStatus.Tuning;
+                    else if (Status == BrushStatus.Building) Status = BrushStatus.Free;
+                    break;
+                case MouseButtons.Right:
+                    Status = BrushStatus.Free;
+                    break;
             }
+
             return true;
         }
 
@@ -373,6 +386,9 @@ namespace WhAnno.Anno.Brush
                         TempAnno.width = Math.Max(0, TempAnno.width - 1);
                         break;
 
+                    case Keys.Escape:
+                        GlobalMessage.Add("brush cancel", null);
+                        break;
                     default:
                         break;
                 }
@@ -417,6 +433,23 @@ namespace WhAnno.Anno.Brush
             if (cvt != null)
                 for (int i = 0; i < rect.Length; i++) rect[i] = cvt.Convert(rect[i]);
 
+            //打印类别文本
+            if(annotation.category.Length > 0)
+            {
+                SizeF size = g.MeasureString(annotation.category, font);
+                RectangleF rectangle = new RectangleF(new PointF(rect[0].X, rect[0].Y - size.Height), size);
+                using (System.Drawing.Brush brush = new SolidBrush(pen.Color))
+                {
+                    g.FillRectangle(brush, rectangle);
+                }
+                using (System.Drawing.Brush brush = new SolidBrush(pen.Color.GetReverse()))
+                {
+                    g.DrawString(annotation.category, font, brush, rectangle.Location);
+                }
+
+            }
+
+            //打印矩形
             g.DrawPolygon(pen, rect);
         }
 

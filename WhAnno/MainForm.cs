@@ -43,7 +43,7 @@ namespace WhAnno
                 toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
                 toolStripProgressBar1.Visible = false;
                 //注册消息打印
-                MessagePrint.SolveMessage += PrintStatus;
+                GlobalMessage.Handlers += PrintStatus;
             }
             {
                 annoPicturePannel.Dock = DockStyle.Right;
@@ -57,7 +57,10 @@ namespace WhAnno
                 {
                     brushListPanel.Add(Assembly.GetExecutingAssembly().CreateInstance(item.FullName) as BrushBase);
                 }
+                (brushListPanel.Items[0] as BrushBase).pen = new Pen(Color.FromArgb(150, Color.Orange), 2);
                 brushListPanel.Targets.Add(canva);
+                //注册取消画笔消息接收
+                GlobalMessage.Handlers += BrushCancel;
             }
             {
                 canva.Dock = DockStyle.Left;
@@ -67,8 +70,18 @@ namespace WhAnno
         protected override void OnClosed(EventArgs e)
         {
             //移除消息打印
-            MessagePrint.SolveMessage -= PrintStatus;
+            GlobalMessage.Handlers -= PrintStatus;
+            GlobalMessage.Handlers -= BrushCancel;
             base.OnClosed(e);
+        }
+
+        private void BrushCancel(string describe, object data)
+        {
+            if (describe == "brush cancel")
+            {
+                if (InvokeRequired) BeginInvoke(Process.CatchAction(() => brushListPanel.Cancel()));
+                else brushListPanel.Cancel();
+            }
         }
 
         private void PrintStatus(string describe, object data)
@@ -135,7 +148,7 @@ namespace WhAnno
             //事件调用该函数，执行线程可能并不是创建状态栏控件的线程
             //需将打印任务交给创建状态栏的线程，否则可能引发异常
             if (InvokeRequired) BeginInvoke(Process.CatchAction(action));
-            else Process.CatchAction(action)();
+            else action();
 
         }
 
@@ -146,7 +159,7 @@ namespace WhAnno
             {
                 try
                 {
-                    MessagePrint.Apply("status", "加载中");
+                    GlobalMessage.Apply("status", "加载中");
                     workspace = worksapceFolderDialog.SelectedPath;
                     DirectoryInfo wkDir = new DirectoryInfo(workspace);
                     List<FileInfo> wkFiles = new List<FileInfo>();
@@ -172,7 +185,7 @@ namespace WhAnno
                                 break;
                         }
                     }
-                    MessagePrint.Apply("status", $"共{files.Count}张图像");
+                    GlobalMessage.Apply("status", $"共{files.Count}张图像");
 
                     annoPicturePannel.Clear(true);
                     collect.ForEach((ctl) => { ctl.Image?.Dispose(); ctl.Dispose(); });
@@ -180,7 +193,7 @@ namespace WhAnno
                     annoPicturePannel.IsDynamicDispose = files.Count > 100;
 
                     //虚加载所有图像，并发送进度消息。
-                    MessagePrint.Progress progress = new MessagePrint.Progress(files.Count)
+                    GlobalMessage.Progress progress = new GlobalMessage.Progress(files.Count)
                     {
                         ProgressingFormatString = "已加载{1}",
                         ProgressedString = $"就绪，共{files.Count}张图像",
@@ -200,7 +213,7 @@ namespace WhAnno
                 }
                 catch (Exception ex)
                 {
-                    MessagePrint.Add("exception", ex.Message);
+                    GlobalMessage.Add("exception", ex.Message);
                 }
             }
         }
@@ -242,7 +255,7 @@ namespace WhAnno
                             });
                         }
 
-                        MessagePrint.Progress progress = new MessagePrint.Progress(annoPicturePannel.Count)
+                        GlobalMessage.Progress progress = new GlobalMessage.Progress(annoPicturePannel.Count)
                         {
                             ProgressingFormatString = "正在处理第{1}项，共{2}项",
                             Print = PrintStatus
@@ -261,7 +274,7 @@ namespace WhAnno
         private void TestToolStripMenuItem_Click(object sender, EventArgs e)
         {
             GC.Collect();
-            MessagePrint.Add(GC.CollectionCount(0));
+            GlobalMessage.Add(GC.CollectionCount(0));
         }
     }
 }

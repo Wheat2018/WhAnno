@@ -45,7 +45,7 @@ namespace WhAnno
                 toolStripProgressBar1.ProgressBar.SetColor(ProgressBarColor.Yellow);
                 toolStripProgressBar1.Visible = false;
                 //注册消息打印
-                MessagePrint.SolveMessage += PrintStatus;
+                GlobalMessage.Handlers += PrintStatus;
             }
             {
                 textBox1.MouseUp += TextBox1_MouseUp; ;
@@ -78,20 +78,20 @@ namespace WhAnno
             {
                 using (StreamReader sr = new StreamReader(AnnoFilePath))
                 {
-                    MessagePrint.Add("status", "正在读取文本...");
+                    GlobalMessage.Add("status", "正在读取文本...");
                     FileContext = await sr.ReadToEndAsync();
-                    MessagePrint.Add("status", "正在加载文本...");
+                    GlobalMessage.Add("status", "正在加载文本...");
                     string display = FileContext.Substring(0, Math.Min(textBox1.MaxLength, FileContext.Length)).Replace("\n", "\r\n");
                     textBox1.Text = display;
                     if(FileContext.Length > textBox1.MaxLength)
-                        MessagePrint.Add("status", $"就绪，显示文本前{ textBox1.MaxLength }个字符");
+                        GlobalMessage.Add("status", $"就绪，显示文本前{ textBox1.MaxLength }个字符");
                     else
-                        MessagePrint.Add("status", "就绪");
+                        GlobalMessage.Add("status", "就绪");
                 }
             }
             catch (FileNotFoundException ex)
             {
-                MessagePrint.Add("exception", ex.Message);
+                GlobalMessage.Add("exception", ex.Message);
             }
         }
 
@@ -128,13 +128,13 @@ namespace WhAnno
             string str = "行: " + coor.Y.ToString() + ", 列: " + coor.X.ToString();
             if (textBox1.SelectionLength > 0)
                 str += ", 选中" + textBox1.SelectionLength.ToString() + "个字符";
-            MessagePrint.Add("status", str);
+            GlobalMessage.Add("status", str);
         }
 
         protected override void OnClosed(EventArgs e)
         {
             //移除消息打印
-            MessagePrint.SolveMessage -= PrintStatus;
+            GlobalMessage.Handlers -= PrintStatus;
             base.OnClosed(e);
         }
 
@@ -157,7 +157,7 @@ namespace WhAnno
                         Annotations = GetAnnoFromRegex(brushListPanel.CurrentItem, matches.ToStringArray(),
                                                        patterns.SubArray(1, patterns.Length - 1),
                                                        brushListPanel.CurrentItem.AnnoType.GetFields(FieldsOrder.BaseToSub),
-                                                       progress: new MessagePrint.Progress() 
+                                                       progress: new GlobalMessage.Progress() 
                                                        {
                                                            Print = PrintStatus,
                                                            ProgressingFormatString = "计算中，完成{0}%"
@@ -261,7 +261,7 @@ namespace WhAnno
                     const int max = 100;
 
                     //报告相关
-                    MessagePrint.Add("status", "计算正则...");
+                    GlobalMessage.Add("status", "计算正则...");
 
                     string[] patterns = RegexText.GetLines();
                     MatchCollection matches = Regex.Matches(FileContext, patterns[0]);
@@ -270,13 +270,13 @@ namespace WhAnno
                     int realCount = Math.Min(max, matches.Count);
 
                     //报告相关
-                    MessagePrint.Progress progress = new MessagePrint.Progress(realCount)
+                    GlobalMessage.Progress progress = new GlobalMessage.Progress(realCount)
                     {
                         ProgressedString = matches.Count > max ? 
                         $"就绪 {realCount}/{matches.Count}个匹配项" : 
                         $"就绪 {matches.Count}个匹配项"
                     };
-                    if (matches.Count > max) MessagePrint.Add("info delay", $"匹配项过多，加载前{max}项");
+                    if (matches.Count > max) GlobalMessage.Add("info delay", $"匹配项过多，加载前{max}项");
 
                     ListViewGroup[] groups = new ListViewGroup[realCount];
                     for (int i = 0; i < realCount; i++)
@@ -316,15 +316,15 @@ namespace WhAnno
                     }));
                 }
                 else
-                    MessagePrint.Add("status", "就绪");
+                    GlobalMessage.Add("status", "就绪");
             }
             catch (Process.ProcessAbortException)
             {
             }
             catch (Exception ex)
             {
-                MessagePrint.Add("status", "正则计算错误");
-                MessagePrint.Add("exception delay", ex.Message);
+                GlobalMessage.Add("status", "正则计算错误");
+                GlobalMessage.Add("exception delay", ex.Message);
             }
             finally
             {

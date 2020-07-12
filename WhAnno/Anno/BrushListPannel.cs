@@ -38,7 +38,7 @@ namespace WhAnno.Anno
             {
                 item.BackColor = SystemColors.ActiveBorder;
             }
-            MessagePrint.Add("", "MouseEnter " + item.GetType().Name);
+            GlobalMessage.Add("", "MouseEnter " + item.GetType().Name);
             base.OnItemMouseEnter(item, e);
         }
 
@@ -53,7 +53,7 @@ namespace WhAnno.Anno
             {
                 item.BackColor = SystemColors.Control;
             }
-            MessagePrint.Add("", "MouseLeave " + item.GetType().Name);
+            GlobalMessage.Add("", "MouseLeave " + item.GetType().Name);
             base.OnItemMouseLeave(item, e);
         }
 
@@ -61,7 +61,7 @@ namespace WhAnno.Anno
         {
             item.BackColor = SystemColors.ActiveCaption;
             item.BorderStyle = BorderStyle.Fixed3D;
-            MessagePrint.Add("status", "选中: " + CurrentItem.GetType().Name);
+            GlobalMessage.Add("status", "选中: " + CurrentItem.GetType().Name);
             base.OnItemSelected(item, e);
         }
 
@@ -86,7 +86,7 @@ namespace WhAnno.Anno
         }
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            MessagePrint.Add("info", "鼠标: " + e.Location.ToString());
+            GlobalMessage.Add("info", "鼠标: " + e.Location.ToString());
             base.OnMouseMove(e);
         }
 
