@@ -368,7 +368,7 @@ namespace WhAnno.Utils
         /// <param name="e"></param>
         protected virtual void OnItemClick(ItemType item, EventArgs e)
         {
-            if (Judge.MouseEvent.Left(e)) Select(item);
+            if (Judge.Mouse.Left(e)) Select(item);
             ItemClick?.Invoke(this, item, e);
         }
 

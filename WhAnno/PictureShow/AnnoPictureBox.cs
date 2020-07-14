@@ -98,6 +98,7 @@ namespace WhAnno.PictureShow
             if (!CheckAnnotation(annotation, FilePath)) return false;
             annotation.file = FilePath;
             Annotations.Add(annotation);
+            Invalidate();
             return true;
         }
 
@@ -107,14 +108,14 @@ namespace WhAnno.PictureShow
         /// <param name="g">GDI+绘图图面</param>
         /// <param name="cvt">坐标变换规则</param>
         /// 
-        public void PaintAnnos(Graphics g, ICoorConverter cvt = null)
+        public void DrawAnnos(Graphics g, ICoorConverter cvt = null)
         {
             Color[] colors = ColorList.Linspace(Annotations.Count);
             for (int i = 0; i < Annotations.Count; i++)
             {
                 BrushBase brush = Annotations[i].CreatBrush();
-                brush.pen = new Pen(colors[i], 2);
-                brush.PaintAnno(g, Annotations[i], cvt);
+                brush.pen = new Pen(Color.FromArgb(200, colors[i]), 2);
+                brush.DrawAnno(g, Annotations[i], cvt);
 
             }
             //foreach (AnnotationBase anno in Annotations)

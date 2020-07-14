@@ -74,7 +74,7 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Utils\GlobalSetting.cs" />
+    <Compile Include="Utils\Setting.cs" />
     <Compile Include="Utils\DynamicListPannel.cs">
       <SubType>Component</SubType>
     </Compile>

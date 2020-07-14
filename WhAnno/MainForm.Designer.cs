@@ -77,6 +77,7 @@
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.listView2 = new System.Windows.Forms.ListView();
+            this.test2ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox5)).BeginInit();
@@ -106,7 +107,8 @@
             this.打开工作区ToolStripMenuItem,
             this.toolStripMenuItem1,
             this.退出ToolStripMenuItem,
-            this.testToolStripMenuItem});
+            this.testToolStripMenuItem,
+            this.test2ToolStripMenuItem});
             this.文件ToolStripMenuItem.Name = "文件ToolStripMenuItem";
             this.文件ToolStripMenuItem.Size = new System.Drawing.Size(53, 24);
             this.文件ToolStripMenuItem.Text = "文件";
@@ -117,7 +119,7 @@
             this.工作区ToolStripMenuItem,
             this.标注ToolStripMenuItem});
             this.打开工作区ToolStripMenuItem.Name = "打开工作区ToolStripMenuItem";
-            this.打开工作区ToolStripMenuItem.Size = new System.Drawing.Size(122, 26);
+            this.打开工作区ToolStripMenuItem.Size = new System.Drawing.Size(224, 26);
             this.打开工作区ToolStripMenuItem.Text = "打开";
             // 
             // 工作区ToolStripMenuItem
@@ -137,19 +139,19 @@
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(119, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(221, 6);
             // 
             // 退出ToolStripMenuItem
             // 
             this.退出ToolStripMenuItem.Name = "退出ToolStripMenuItem";
-            this.退出ToolStripMenuItem.Size = new System.Drawing.Size(122, 26);
+            this.退出ToolStripMenuItem.Size = new System.Drawing.Size(224, 26);
             this.退出ToolStripMenuItem.Text = "退出";
             this.退出ToolStripMenuItem.Click += new System.EventHandler(this.退出ToolStripMenuItem_Click);
             // 
             // testToolStripMenuItem
             // 
             this.testToolStripMenuItem.Name = "testToolStripMenuItem";
-            this.testToolStripMenuItem.Size = new System.Drawing.Size(122, 26);
+            this.testToolStripMenuItem.Size = new System.Drawing.Size(224, 26);
             this.testToolStripMenuItem.Text = "test";
             this.testToolStripMenuItem.Click += new System.EventHandler(this.TestToolStripMenuItem_Click);
             // 
@@ -369,6 +371,13 @@
             this.listView2.UseCompatibleStateImageBehavior = false;
             this.listView2.View = System.Windows.Forms.View.Details;
             // 
+            // test2ToolStripMenuItem
+            // 
+            this.test2ToolStripMenuItem.Name = "test2ToolStripMenuItem";
+            this.test2ToolStripMenuItem.Size = new System.Drawing.Size(224, 26);
+            this.test2ToolStripMenuItem.Text = "test2";
+            this.test2ToolStripMenuItem.Click += new System.EventHandler(this.test2ToolStripMenuItem_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
@@ -439,6 +448,7 @@
         private System.Windows.Forms.ColumnHeader columnHeader2;
         private System.Windows.Forms.ColumnHeader columnHeader3;
         private System.Windows.Forms.ListView listView2;
+        private System.Windows.Forms.ToolStripMenuItem test2ToolStripMenuItem;
     }
 }
 

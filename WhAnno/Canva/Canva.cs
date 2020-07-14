@@ -145,7 +145,7 @@ namespace WhAnno.Anno
             if (Image != null) pe.Graphics.DrawImage(Image, ImageBounds);
 
             pe.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-            AnnoPicture?.PaintAnnos(pe.Graphics, this);
+            AnnoPicture?.DrawAnnos(pe.Graphics, this);
 
             AnnoBrush?.DelegatePaint(this, pe, this);
             base.OnPaint(pe);
@@ -186,7 +186,7 @@ namespace WhAnno.Anno
 
             //图像平移
             {
-                if (Utils.Judge.MouseEvent.Middle(e))
+                if (Utils.Judge.Mouse.Middle(e))
                 {
                     Cursor = Cursors.SizeAll;
                     if (imageTranslationTemp != null)
@@ -260,7 +260,22 @@ namespace WhAnno.Anno
         {
             if (AnnoBrush != null && !AnnoBrush.DelegateProcessCmdKey(this, ref msg, keyData, this)) return true;
 
-            if (keyData == Keys.Escape) GlobalMessage.Add("brush cancel", null);
+            bool handled = false;
+            switch (keyData)
+            {
+                case Keys.Escape:
+                    GlobalMessage.Add("brush cancel", null);
+                    handled = true;
+                    break;
+                case Keys.Enter:
+                case Keys.Space:
+                    AnnoPicture.AddAnnotation(AnnoBrush?.GenerateAnnotation());
+                    AnnoBrush?.Init();
+                    handled = true;
+                    break;
+            }
+            if (handled) Invalidate();
+
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
@@ -393,6 +408,7 @@ namespace WhAnno.Anno
             AnnoPicture = item;
             item.Paint += AnnoPicturePaintSync;
             ResetImageBounds();
+            AnnoBrush?.Init();
 
             OnImageChanged(new EventArgs());
         }
@@ -404,6 +420,8 @@ namespace WhAnno.Anno
             item.Paint -= AnnoPicturePaintSync;
             if (AnnoPicture == item)
             {
+                AnnoPicture.AddAnnotation(AnnoBrush?.GenerateAnnotation());
+                AnnoBrush?.Init();
                 AnnoPicture = null;
                 Invalidate();
             }

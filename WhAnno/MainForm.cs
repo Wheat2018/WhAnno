@@ -57,7 +57,6 @@ namespace WhAnno
                 {
                     brushListPanel.Add(Assembly.GetExecutingAssembly().CreateInstance(item.FullName) as BrushBase);
                 }
-                (brushListPanel.Items[0] as BrushBase).pen = new Pen(Color.FromArgb(150, Color.Orange), 2);
                 brushListPanel.Targets.Add(canva);
                 //注册取消画笔消息接收
                 GlobalMessage.Handlers += BrushCancel;
@@ -273,8 +272,18 @@ namespace WhAnno
 
         private void TestToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            GC.Collect();
-            GlobalMessage.Add(GC.CollectionCount(0));
+            Setting.Global.Categories.Add("A");
+            Setting.Global.Categories.Add("B");
+            Setting.Global.Categories.Add("C");
+            Setting.Global.Categories.Add("D");
+
+            Setting.Global.Save("test.xml");
+        }
+
+        private void test2ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Setting.Global.Load("test.xml");
+            GlobalMessage.Add(Setting.Global);
         }
     }
 }

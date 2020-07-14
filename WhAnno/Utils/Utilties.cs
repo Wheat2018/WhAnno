@@ -9,9 +9,12 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Policy;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml;
+using WhAnno.Utils.Expend;
 
 /// <summary>
 /// 提供一些实用的方法或控件。可以根据需求功能重新实现它们。
@@ -513,7 +516,7 @@ namespace WhAnno.Utils
         /// <returns>数量为<paramref name="n"/>的颜色表</returns>
         public static Color[] Linspace(int n)
         {
-            return Linspace(Color.Red, Color.Cyan, n);
+            return Linspace(Color.Red, Color.Blue, n);
         }
 
         /// <summary>
@@ -530,7 +533,7 @@ namespace WhAnno.Utils
             int last = color2.ToArgb();
             for (int i = 0; i < n; i++)
             {
-                result[i] = Color.FromArgb((int)(first + (i + 1) * (long)(first - last) / n));
+                result[i] = Color.FromArgb((int)(first + (i + 1) * ((long)last - first) / n));
             }
 
             return result;
@@ -538,9 +541,159 @@ namespace WhAnno.Utils
 
     }
 
+    /// <summary>
+    /// <see cref="XmlElement"/>生成器。
+    /// </summary>
+    public static class XmlElementGenerator
+    {
+        /// <summary>
+        /// 使用<see cref="XmlElementGenerator"/>任何方法前，应先将新建的<see cref="XmlDocument"/>绑定到此属性上。
+        /// </summary>
+        public static XmlDocument GlobalDoc { get; set; }
+
+        /// <summary>
+        /// 从某种类型实例创建<see cref="XmlElement"/>。
+        /// </summary>
+        /// <param name="name"><see cref="XmlElement"/>的名字。</param>
+        /// <param name="instance">实例。</param>
+        /// <remarks>对实例调用<see cref="object.ToString"/>方法构造<see cref="XmlElement"/></remarks>
+        /// <returns></returns>
+        public static XmlElement FromInstance(string name, object instance)
+        {
+            XmlElement result = GlobalDoc.CreateElement(name);
+            if (instance != null)
+            {
+                result.SetAttribute("Type", instance.GetType().Name);
+                result.InnerText = instance.ToString();
+            }
+            else
+            {
+                result.SetAttribute("Type", "Null");
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 从某种集合类实例创建<see cref="XmlElement"/>。
+        /// </summary>
+        /// <typeparam name="T">集合的元素类型。</typeparam>
+        /// <param name="name"><see cref="XmlElement"/>的名字。</param>
+        /// <param name="collection">集合实例。</param>
+        /// <param name="ItemToXmlElement">集合元素到<see cref="XmlElement"/>的转换，默认为<see cref="FromInstance(string, object)"/>，其中<see cref="string"/>恒为<paramref name="bingdingName"/>。</param>
+        /// <param name="bingdingName">每个集合元素构造的节点的限定名称。</param>
+        /// <returns></returns>
+        public static XmlElement FromCollection<T>(string name, ICollection<T> collection, Func<T, XmlElement> ItemToXmlElement = null, string bingdingName = "Item")
+        {
+            if (ItemToXmlElement == null) ItemToXmlElement = (item) => FromInstance(bingdingName, item);
+
+            XmlElement result = FromInstance(name, collection);
+
+            foreach (T item in collection)
+                result.AppendChild(ItemToXmlElement(item));
+
+            return result;
+        }
+
+        /// <summary>
+        /// 从实例中的所有实现<see cref="IXmlSavable"/>接口的非静态属性创建<see cref="XmlElement"/>数组。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <returns><see cref="XmlElement"/>数组。</returns>
+        public static XmlElement[] FromSavablePropsOfInstance(object instance)
+        {
+            List<XmlElement> result = new List<XmlElement>();
+            foreach (PropertyInfo property in instance.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (typeof(IXmlSavable).IsAssignableFrom(property.PropertyType))
+                    result.Add((property.GetValue(instance) as IXmlSavable).ToXmlElement());
+            }
+            
+            return result.ToArray();
+        }
+    }
+
+    public static class XmlElementConverter
+    {
+        /// <summary>
+        /// 将<see cref="XmlElement.InnerText"/>转换为目标类型（基础类型执行等值转换（未实现<see cref="IConvertible"/>可能出错），类类型执行引用转换）。
+        /// </summary>
+        /// <typeparam name="T">目标类型。</typeparam>
+        /// <param name="element"><see cref="XmlElement"/>实例。</param>
+        /// <returns>转换生成的目标类型实例。</returns>
+        /// <remarks>使用<see cref="Convert.ChangeType(object, Type)"/>执行转换。</remarks>
+        public static T ToInstance<T>(XmlElement element)
+        {
+            return (T)Convert.ChangeType(element.GetText(), typeof(T)); ;
+        }
+
+        /// <summary>
+        /// 将<see cref="XmlElement"/>转换为实现了<see cref="IConvertible"/>的类型（一般为基础类型）。
+        /// </summary>
+        /// <typeparam name="T">目标类型。</typeparam>
+        /// <param name="output">输出目标实例。</param>
+        /// <param name="element"><see cref="XmlElement"/>实例。</param>
+        public static void ToInstance<T>(out T output, XmlElement element) where T : IConvertible
+        {
+            output = ToInstance<T>(element);
+        }
+
+        /// <summary>
+        /// 按照<see cref="XmlElement"/>实例填充集合类型实例。
+        /// </summary>
+        /// <typeparam name="T">集合的元素类型，若<paramref name="ItemFromXmlElement"/>为null，则该类型必须实现接口<see cref="IConvertible"/>，否则引发<see cref="ArgumentException"/>异常。</typeparam>
+        /// <param name="output">目标集合实例。</param>
+        /// <param name="element"><see cref="XmlElement"/>实例。</param>
+        /// <param name="ItemFromXmlElement"><see cref="XmlElement"/>到集合元素的转换。若该参数为null，则集合元素类型<typeparamref name="T"/>必须实现接口<see cref="IConvertible"/>，此时调用<see cref="Convert.ChangeType(object, Type)"/>实现转换，否则引发<see cref="ArgumentException"/>异常。</param>
+        /// <param name="bingdingName">每个集合元素构造的节点的限定名称绑定，仅在符合绑定时为集合添加构造元素，若设为null则无条件绑定。不区分大小写。</param>
+        /// <exception cref="ArgumentException"><paramref name="ItemFromXmlElement"/>为null，而<typeparamref name="T"/>又未实现接口<see cref="IConvertible"/>时引发。</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="output"/>为null时引发。</exception>
+        public static void ToCollection<T>(ICollection<T> output, XmlElement element, Func<XmlElement, T> ItemFromXmlElement = null, string bindingName = "Item")
+        {
+            if (output is null) 
+                throw new ArgumentNullException("参数output必须有所指。");
+            if (ItemFromXmlElement is null && !typeof(IConvertible).IsAssignableFrom(typeof(T)))
+                throw new ArgumentException("如果参数ItemFromXmlElement为null，则集合的元素类型必须实现IConverible接口。");
+
+            if (ItemFromXmlElement is null) ItemFromXmlElement = (_element) => ToInstance<T>(_element);
+
+            output.Clear();
+            foreach (XmlElement ele in element.GetChildElements())
+            {
+                if (bindingName == null || ele.Name.ToLower() == bindingName.ToLower())
+                    output.Add(ItemFromXmlElement(ele));
+            }
+        }
+
+        /// <summary>
+        /// 按照<see cref="XmlElement"/>填充实例中的所有实现<see cref="IXmlSavable"/>接口的属性，以属性中<see cref="IXmlSavable.ID"/>为绑定条件，区分大小写。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <param name="elements"><see cref="XmlElement"/>数组。</param>
+        public static void ToSavablePropsOfInstance(object instance, XmlElement[] elements)
+        {
+
+            foreach (PropertyInfo property in instance.GetType().GetProperties())
+            {
+                if (typeof(IXmlSavable).IsAssignableFrom(property.PropertyType))
+                {
+                    foreach (XmlElement item in elements)
+                    {
+                        if (item.Name == property.Name)
+                            (property.GetValue(instance) as IXmlSavable).FromXmlElement(item);
+                    }
+
+                }
+            }
+
+        }
+    }
+
+    /// <summary>
+    /// 专注布尔判断二十年。
+    /// </summary>
     namespace Judge
     {
-        public static class MouseEvent
+        public static class Mouse
         {
             /// <summary>
             /// 判断事件是否为鼠标左击事件
@@ -817,6 +970,49 @@ namespace WhAnno.Utils
                             result.Add(field);
                 }
                 return result.ToArray();
+            }
+        }
+
+        public static class XmlNodeMethods
+        {
+            /// <summary>
+            /// 将指定的节点数组添加到该节点的末尾。
+            /// </summary>
+            /// <param name="node">该节点。</param>
+            /// <param name="children">要添加的节点数组。</param>
+            /// <returns>添加的节点数组</returns>
+            public static XmlNode[] AppendChildren(this XmlNode node, XmlNode[] children)
+            {
+                foreach (XmlNode child in children) node.AppendChild(child);
+                return children;
+            }
+
+            /// <summary>
+            /// 获取正则项匹配的所有子节点。
+            /// </summary>
+            /// <param name="node"></param>
+            /// <param name="regex">正则表达式。</param>
+            /// <returns></returns>
+            public static XmlElement[] GetChildElements(this XmlElement node, Regex regex = null)
+            {
+                List<XmlElement> children = new List<XmlElement>();
+                foreach (XmlNode child in node.ChildNodes)
+                    if (child is XmlElement)
+                        if (regex == null || regex.IsMatch(child.Name)) children.Add(child as XmlElement);
+
+                return children.ToArray();
+            }
+
+            public static string GetText(this XmlElement node)
+            {
+                foreach (XmlNode item in node.ChildNodes)
+                {
+                    if (item is XmlText)
+                    {
+                        return item.Value;
+                    }
+                }
+                return null;
             }
         }
     }

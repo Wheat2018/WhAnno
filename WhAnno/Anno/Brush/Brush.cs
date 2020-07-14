@@ -49,13 +49,18 @@ namespace WhAnno.Anno.Base
 
         //To Implement
         /// <summary>
+        /// 画笔初始化。
+        /// </summary>
+        /// <remarks>在准备使用画笔创建新标注时调用。</remarks>
+        public abstract void Init();
+        /// <summary>
         /// 给定GDI+绘图图面和标注实例，将实例绘制到指定图面中。
         /// </summary>
         /// <param name="g">GDI+绘图图面</param>
         /// <param name="anno">标注实例</param>
         /// <param name="cvt">坐标变换规则</param>
         /// 
-        public abstract void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null);
+        public abstract void DrawAnno(Graphics g, object anno, ICoorConverter cvt = null);
         /// <summary>
         /// 生成当前画笔所构造的标注。
         /// </summary>
@@ -197,6 +202,33 @@ namespace WhAnno.Anno.Base
             return result;
         }
 
+        //Overridable
+        /// <summary>
+        /// 在指定图面指定点绘制带框的类别标签。
+        /// </summary>
+        /// <param name="g">GDI+绘图图面</param>
+        /// <param name="loc">文本绘制左下角</param>
+        /// <param name="font">文字字体</param>
+        /// <param name="rectColor">矩形颜色</param>
+        /// <param name="strColor">文字颜色</param>
+        public virtual void DrawCategory(Graphics g, Point loc, Font font, Color rectColor, Color strColor)
+        {
+            if (category.Length > 0)
+            {
+                SizeF size = g.MeasureString(category, font);
+                RectangleF rectangle = new RectangleF(new PointF(loc.X, loc.Y - size.Height), size);
+                using (System.Drawing.Brush brush = new SolidBrush(rectColor))
+                {
+                    g.FillRectangle(brush, rectangle);
+                }
+                using (System.Drawing.Brush brush = new SolidBrush(strColor))
+                {
+                    g.DrawString(category, font, brush, rectangle.Location);
+                }
+
+            }
+        }
+
 
         //Static Methods
         /// <summary>
@@ -207,7 +239,7 @@ namespace WhAnno.Anno.Base
         public static bool IsAnnoType(Type type)
         {
             return BrushBase.IsBrushType(type?.ReflectedType) && 
-                   type?.Name == "Annotation" && type?.BaseType.Name == "AnnotationBase";
+                    type?.Name == "Annotation" && type?.BaseType.Name == "AnnotationBase";
         }
 
         /// <summary>
@@ -276,27 +308,29 @@ namespace WhAnno.Anno.Brush
             Tuning = 2
         }
 
-        public BrushStatus Status { get; private set; } = BrushStatus.Free;
-        public Annotation TempAnno { get; private set; } = new Annotation() { width = 10, height = 10 };
-
-        private bool tempFinished = false;
-        private System.Drawing.Point downPoint;
-
         //Properties
         /// <summary>
         /// 绘制画笔图标的线条宽度。
         /// </summary>
         public int IconLineWidth { get; set; } = 2;
+        public BrushStatus Status { get; private set; }
+        public Annotation TempAnno { get; private set; }
 
+        private System.Drawing.Point downPoint;
+        private Annotation downTempAnno;
+
+        //Methods
+        public Rectangle() => Init();
 
         //Override
         public override bool DelegateMouseDown(object sender, MouseEventArgs e, ICoorConverter cvt = null)
         {
-            if (Utils.Judge.MouseEvent.Left(e))
+            if (Utils.Judge.Mouse.Left(e))
             {
                 System.Drawing.Point point = e.Location;
                 if (cvt != null) point = cvt.ReConvert(point);
                 downPoint = point;
+                downTempAnno = TempAnno;
             }
 
             return true;
@@ -309,7 +343,7 @@ namespace WhAnno.Anno.Brush
             System.Drawing.Point point = e.Location;
             if (cvt != null) point = cvt.ReConvert(point);
 
-            if (Utils.Judge.MouseEvent.Left(e))
+            if (Utils.Judge.Mouse.Left(e))
             {
                 if (Status == BrushStatus.Free || Status == BrushStatus.Building)
                 {
@@ -323,9 +357,20 @@ namespace WhAnno.Anno.Brush
                         width = rect.Width,
                         height = rect.Height
                     };
-                    (sender as Control).Invalidate();
-                    GlobalMessage.Add("status", TempAnno.ToString());
                 }
+                else
+                {
+                    Size delta = new Size(point.X - downPoint.X, point.Y - downPoint.Y);
+                    TempAnno = new Annotation()
+                    {
+                        x = downTempAnno.x + delta.Width,
+                        y = downTempAnno.y + delta.Height,
+                        width = TempAnno.width,
+                        height = TempAnno.height
+                    };
+                }
+                (sender as Control).Invalidate();
+                GlobalMessage.Add("status", TempAnno.ToString());
             }
             else if (e.Button == MouseButtons.None)
             {
@@ -356,15 +401,18 @@ namespace WhAnno.Anno.Brush
                     else if (Status == BrushStatus.Building) Status = BrushStatus.Free;
                     break;
                 case MouseButtons.Right:
-                    Status = BrushStatus.Free;
+                    if (Status == BrushStatus.Tuning) Status = BrushStatus.Free;
                     break;
             }
+            (sender as Control).Invalidate();
 
             return true;
         }
 
         public override bool DelegateProcessCmdKey(object sender, ref Message msg, Keys keyData, ICoorConverter cvt = null)
         {
+            //键值是否已处理。
+            bool handled = false;
             if (TempAnno != null)
             {
                 switch (keyData)
@@ -372,37 +420,52 @@ namespace WhAnno.Anno.Brush
                     case Keys.W:
                     case Keys.Up:
                         TempAnno.height++;
+                        handled = true;
                         break;
                     case Keys.S:
                     case Keys.Down:
                         TempAnno.height = Math.Max(0, TempAnno.height - 1);
+                        handled = true;
                         break;
                     case Keys.D:
                     case Keys.Right:
                         TempAnno.width++;
+                        handled = true;
                         break;
                     case Keys.A:
                     case Keys.Left:
                         TempAnno.width = Math.Max(0, TempAnno.width - 1);
+                        handled = true;
                         break;
 
-                    case Keys.Escape:
-                        GlobalMessage.Add("brush cancel", null);
+                    case Keys.Back:
+                        if (Status == BrushStatus.Tuning) Status = BrushStatus.Free;
+                        handled = true;
                         break;
-                    default:
+                    case Keys.Enter:
+                    case Keys.Space:
+                        if (Status == BrushStatus.Free)
+                        {
+                            Status = BrushStatus.Tuning;
+                            handled = true;
+                        }
                         break;
                 }
-                (sender as Control).Invalidate();
-                return false;
             }
 
-            return true;
+            if (handled) (sender as Control).Invalidate();
+            return !handled;
         }
 
         public override void DelegatePaint(object sender, PaintEventArgs e, ICoorConverter cvt = null)
         {
             if (TempAnno != null)
-                PaintAnno(e.Graphics, TempAnno, cvt);
+            {
+                if (Status == BrushStatus.Tuning) pen.DashStyle = DashStyle.Solid;
+                else pen.DashStyle = DashStyle.Dash;
+                DrawAnno(e.Graphics, TempAnno, cvt);
+
+            }
 
         }
 
@@ -418,7 +481,13 @@ namespace WhAnno.Anno.Brush
         }
 
         //Abstract Implement
-        public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
+        public override void Init()
+        {
+            TempAnno = new Annotation() { width = 10, height = 10 };
+            Status = BrushStatus.Free;
+        }
+
+        public override void DrawAnno(Graphics g, object anno, ICoorConverter cvt = null)
         {
             if (anno.GetType() != AnnoType) return;
 
@@ -434,20 +503,7 @@ namespace WhAnno.Anno.Brush
                 for (int i = 0; i < rect.Length; i++) rect[i] = cvt.Convert(rect[i]);
 
             //打印类别文本
-            if(annotation.category.Length > 0)
-            {
-                SizeF size = g.MeasureString(annotation.category, font);
-                RectangleF rectangle = new RectangleF(new PointF(rect[0].X, rect[0].Y - size.Height), size);
-                using (System.Drawing.Brush brush = new SolidBrush(pen.Color))
-                {
-                    g.FillRectangle(brush, rectangle);
-                }
-                using (System.Drawing.Brush brush = new SolidBrush(pen.Color.GetReverse()))
-                {
-                    g.DrawString(annotation.category, font, brush, rectangle.Location);
-                }
-
-            }
+            annotation.DrawCategory(g, rect[0], font, pen.Color, pen.Color.GetReverse());
 
             //打印矩形
             g.DrawPolygon(pen, rect);
@@ -482,7 +538,11 @@ namespace WhAnno.Anno.Brush
         public int IconLineWidth { get; set; } = 2;
 
         //Abstract Implement
-        public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
+        public override void Init()
+        {
+            throw new NotImplementedException();
+        }
+        public override void DrawAnno(Graphics g, object anno, ICoorConverter cvt = null)
         {
             if (anno.GetType() != AnnoType) return;
 
@@ -526,7 +586,11 @@ namespace WhAnno.Anno.Brush
         public int IconLineWidth { get; set; } = 2;
 
         //Abstract Implement
-        public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
+        public override void Init()
+        {
+            throw new NotImplementedException();
+        }
+        public override void DrawAnno(Graphics g, object anno, ICoorConverter cvt = null)
         {
             throw new NotImplementedException();
         }

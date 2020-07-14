@@ -38,7 +38,6 @@ namespace WhAnno.Anno
             {
                 item.BackColor = SystemColors.ActiveBorder;
             }
-            GlobalMessage.Add("", "MouseEnter " + item.GetType().Name);
             base.OnItemMouseEnter(item, e);
         }
 
@@ -53,7 +52,6 @@ namespace WhAnno.Anno
             {
                 item.BackColor = SystemColors.Control;
             }
-            GlobalMessage.Add("", "MouseLeave " + item.GetType().Name);
             base.OnItemMouseLeave(item, e);
         }
 
