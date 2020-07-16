@@ -280,7 +280,7 @@ namespace WhAnno
             Setting.Global.Save("test.xml");
         }
 
-        private void test2ToolStripMenuItem_Click(object sender, EventArgs e)
+        private void Test2ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Setting.Global.Load("test.xml");
             GlobalMessage.Add(Setting.Global);

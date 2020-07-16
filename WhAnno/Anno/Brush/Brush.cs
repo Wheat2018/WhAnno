@@ -136,6 +136,23 @@ namespace WhAnno.Anno.Base
             }
             return types.ToArray();
         }
+
+        /// <summary>
+        /// 使用画笔通用名称获取画笔类型。
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static Type GetBrushType(string name)
+        {
+            var t = from type in GetBrushTypes()
+                    where type.Name == name
+                    select type;
+            var enumerator = t.GetEnumerator();
+            if (!enumerator.MoveNext()) return null;
+            Type res = enumerator.Current;
+            if (enumerator.MoveNext()) throw new Exception($"类型名称{name}具有多义性，找到{t.Count()}个匹配项");
+            return t.First();
+        }
     }
 
     public class AnnotationBase

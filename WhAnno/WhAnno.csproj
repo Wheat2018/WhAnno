@@ -91,6 +91,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Utils\Utilties.cs" />
+    <Compile Include="Utils\XmlSave.cs" />
     <EmbeddedResource Include="Anno\AnnoLoaderForm.resx">
       <DependentUpon>AnnoLoaderForm.cs</DependentUpon>
     </EmbeddedResource>

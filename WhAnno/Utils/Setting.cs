@@ -5,23 +5,66 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using WhAnno.Anno.Base;
 using WhAnno.Utils.Expend;
+using WhAnno.Utils.XmlSave;
 
 namespace WhAnno.Utils
 {
-    public interface IXmlSavable
+    public static class XmlExpand
     {
-        string ID { get; set; }
-        /// <summary>
-        /// 将实例转换成Xml元素。
-        /// </summary>
-        /// <returns></returns>
-        XmlElement ToXmlElement();
-        /// <summary>
-        /// 使用Xml元素填充实例。
-        /// </summary>
-        /// <param name="str"></param>
-        void FromXmlElement(XmlElement element);
+        public static XmlElement KeyValueToXmlElement<T>(KeyValuePair<string, T> pair)
+        {
+            XmlElement res = XmlElementGenerator.FromString("x", pair);
+            res.AppendChildren(XmlElementGenerator.FromNamePropsOf(pair, "Key"));
+            res.AppendChildren(XmlElementGenerator.FromNamePropsOf(pair, "Value"));
+            return res;
+        }
+        public static object KeyValueFromXmlElement<T>(KeyValuePair<string, T> _, XmlElement element)
+        {
+            return new KeyValuePair<string, T>(element.GetElement("Key").ToNewInstance<string>(),
+                                               element.GetElement("Value").ToNewInstance<T>());
+        }
+
+        public static XmlElement ToXmlElement(this KeyValuePair<string, Pen> pair) => KeyValueToXmlElement(pair);
+        public static object FromXmlElement(this KeyValuePair<string, Pen> _, XmlElement element)
+        {
+            //Pen没有默认构造，必须手动构造再赋值。
+            Pen pen = Pens.Black;
+            pen = element.GetElement("Value").ToInstance(pen) as Pen;
+            return new KeyValuePair<string, Pen>(element.GetElement("Key").ToNewInstance<string>(), pen);
+        }
+
+        public static XmlElement ToXmlElement(this KeyValuePair<string, string> pair) => KeyValueToXmlElement(pair);
+        public static object FromXmlElement(this KeyValuePair<string, string> pair, XmlElement element) => KeyValueFromXmlElement(pair, element);
+
+
+        public static XmlElement ToXmlElement(this Pen pen)
+        {
+            XmlElement res = XmlElementGenerator.FromString("x", pen);
+            res.AppendChildren(XmlElementGenerator.FromNamePropsOf(pen, "Width", "Color"));
+            return res;
+        }
+        public static object FromXmlElement(this Pen _, XmlElement element)
+        {
+            return new Pen(element.GetElement("Color").ToNewInstance<Color>(),
+                           element.GetElement("Width").ToNewInstance<float>());
+        }
+
+        public static XmlElement ToXmlElement(this Color color)
+        {
+            XmlElement res = XmlElementGenerator.FromString("x", color);
+            res.AppendChildren(XmlElementGenerator.FromNamePropsOf(color, "A", "R", "G", "B"));
+            return res;
+        }
+        public static object FromXmlElement(this Color _, XmlElement element)
+        {
+            return Color.FromArgb(element.GetElement("A").ToNewInstance<int>(),
+                                  element.GetElement("R").ToNewInstance<int>(),
+                                  element.GetElement("G").ToNewInstance<int>(),
+                                  element.GetElement("B").ToNewInstance<int>());
+        }
+
     }
 
     /// <summary>
@@ -29,8 +72,29 @@ namespace WhAnno.Utils
     /// </summary>
     public class Setting : IXmlSavable
     {
+
         public static Setting Global { get; } = new Setting("Global");
 
+        public class Category : IXmlSavable
+        {
+            public string Name { get; set; }
+
+            public BrushBase Brush { get; set; } = new Anno.Brush.Rectangle();
+
+            XmlElement IXmlSavable.ToXmlElement()
+            {
+                XmlElement res = XmlElementGenerator.FromString(Name, this);
+                res.AppendChildren(XmlElementGenerator.FromNamePropsOf(this, "BrushPen", "BrushType"));
+                return res;
+            }
+
+            object IXmlSavable.FromXmlElement(XmlElement element)
+            {
+                XmlElementConverter.ToNameFieldsOf(this, element.GetChildElements(), "BrushPen", "BrushType");
+                return this;
+            }
+
+        }
         /// <summary>
         /// 类别的集合。
         /// </summary>
@@ -41,70 +105,47 @@ namespace WhAnno.Utils
             /// 类别的附加属性。
             /// </summary>
             /// <typeparam name="T">属性类型。</typeparam>
+            /// <remarks>若<typeparamref name="T"/>并非实现了<see cref="IConvertible"/>的类型，需要覆盖<see cref="CategoryProperty{T}.PropertyToXmlElement"/>和<see cref="CategoryProperty{T}.PropertyFromXmlElement"/>方法，否则生成Xml或从Xml载入时会发生不可预料的错误。</remarks>
             public class CategoryProperty<T> : Dictionary<string, T>, IXmlSavable
             {
                 public T DefaultValue { get; set; } = default;
 
-                /// <summary>
-                /// 类型<see cref="T"/>到<see cref="XmlElement"/>的转换。
-                /// </summary>
-                public Func<T, XmlElement> PropertyToXmlElement = new Func<T, XmlElement>((item) => XmlElementGenerator.FromInstance("Value", item));
-                /// <summary>
-                /// <see cref="XmlElement"/>到类型<see cref="T"/>的转换。
-                /// </summary>
-                public Func<XmlElement, T> PropertyFromXmlElement = new Func<XmlElement, T>((element) => XmlElementConverter.ToInstance<T>(element));
-
                 public CategoryProperty(CategorySet owner, string id)
                 {
                     owner.ItemAdded += (sender, item) => Add(item, DefaultValue);
-                    ((IXmlSavable)this).ID = id;
+                    ((IXmlSavable)this).Name = id;
                 }
 
-                string IXmlSavable.ID { get; set; }
+                string IXmlSavable.Name { get; set; }
 
                 XmlElement IXmlSavable.ToXmlElement()
                 {
-                    return XmlElementGenerator.FromCollection(((IXmlSavable)this).ID, this, (pair) =>
-                    {
-                        XmlElement res = XmlElementGenerator.FromInstance("Item", pair);
-                        res.AppendChild(XmlElementGenerator.FromInstance("Key", pair.Key));
-                        res.AppendChild(PropertyToXmlElement(pair.Value));
-                        return res;
-                    });
+                    return XmlElementGenerator.FromCollection(((IXmlSavable)this).Name, this, bingdingName: typeof(T).Name);
                 }
 
-                void IXmlSavable.FromXmlElement(XmlElement element)
+                object IXmlSavable.FromXmlElement(XmlElement element)
                 {
-                    XmlElementConverter.ToCollection(this, element, (_element) =>
-                    {
-                        KeyValuePair<string, T> pair = new KeyValuePair<string, T>(
-                            XmlElementConverter.ToInstance<string>(_element.SelectSingleNode("Key") as XmlElement),
-                            PropertyFromXmlElement(_element.SelectSingleNode("Value") as XmlElement));
-                        return pair;
-                    });
+                    XmlElementConverter.ToCollection(this, element, bindingName: typeof(T).Name);
+                    return this;
                 }
+
             }
 
             public CategoryProperty<Pen> Pens { get; private set; }
+
+            public CategoryProperty<string> BrushTypes { get; private set; }
 
             public CategorySet(string id)
             {
                 Pens = new CategoryProperty<Pen>(this, "Pens")
                 {
                     DefaultValue = new Pen(Color.Black, 2),
-                    PropertyToXmlElement = (item) =>
-                    {
-                        XmlElement result = XmlElementGenerator.FromInstance("Value", item);
-                        result.InnerText = item.Color.ToArgb() + " " + item.Width;
-                        return result;
-                    },
-                    PropertyFromXmlElement = (element) =>
-                    {
-                        string[] texts = element.GetText().Split(" ".ToCharArray());
-                        return new Pen(Color.FromArgb(Convert.ToInt32(texts[0])), Convert.ToInt32(texts[1]));
-                    }
                 };
-                ((IXmlSavable)this).ID = id;
+                BrushTypes = new CategoryProperty<string>(this, "BrushTypes")
+                {
+                    DefaultValue = "Rectangle"
+                };
+                ((IXmlSavable)this).Name = id;
             }
 
             public event EventHandler<string> ItemAdded;
@@ -119,20 +160,20 @@ namespace WhAnno.Utils
                 if (base.Remove(item)) ItemRemoved?.Invoke(this, item);
             }
 
-            string IXmlSavable.ID { get; set; }
+            string IXmlSavable.Name { get; set; }
 
             XmlElement IXmlSavable.ToXmlElement()
             {
-                XmlElement result = XmlElementGenerator.FromCollection(((IXmlSavable)this).ID, this);
-                result.AppendChildren(XmlElementGenerator.FromSavablePropsOfInstance(this));
+                XmlElement result = XmlElementGenerator.FromCollection(((IXmlSavable)this).Name, this, bingdingName: "Category");
+                result.AppendChildren(XmlElementGenerator.FromSavablePropsOf(this));
                 return result;
             }
 
-            void IXmlSavable.FromXmlElement(XmlElement element)
+            object IXmlSavable.FromXmlElement(XmlElement element)
             {
-                XmlElementConverter.ToCollection(this, element);
-
-                XmlElementConverter.ToSavablePropsOfInstance(this, element.GetChildElements());
+                XmlElementConverter.ToCollection(this, element, bindingName: "Category");
+                XmlElementConverter.ToSavablePropsOf(this, element.GetChildElements());
+                return this;
             }
         }
 
@@ -143,45 +184,26 @@ namespace WhAnno.Utils
 
         public Setting(string id)
         {
-            ((IXmlSavable)this).ID = id;
+            ((IXmlSavable)this).Name = id;
         }
 
-        public void Save(string filename)
-        {
-            XmlDocument doc = new XmlDocument();
-            XmlElementGenerator.GlobalDoc = doc;
-            doc.AppendChild(((IXmlSavable)this).ToXmlElement());
-            doc.Save(filename);
-            XmlElementGenerator.GlobalDoc = null;
-        }
+        public void Save(string filename) => ((IXmlSavable)this).Save(filename);
 
-        public void Load(string filename)
-        {
-            XmlDocument doc = new XmlDocument();
-            doc.Load(filename);
+        public void Load(string filename) => ((IXmlSavable)this).Load(filename);
 
-            XmlElement target = null;
-
-            if (doc.DocumentElement.Name == ((IXmlSavable)this).ID) 
-                target = doc.DocumentElement;
-            else 
-                target = doc.DocumentElement.SelectSingleNode(((IXmlSavable)this).ID) as XmlElement;
-            
-            if (target != null) ((IXmlSavable)this).FromXmlElement(target);
-        }
-
-        string IXmlSavable.ID { get; set; }
+        string IXmlSavable.Name { get; set; }
 
         XmlElement IXmlSavable.ToXmlElement()
         {
-            XmlElement result = XmlElementGenerator.FromInstance(((IXmlSavable)this).ID, this);
-            result.AppendChildren(XmlElementGenerator.FromSavablePropsOfInstance(this));
+            XmlElement result = XmlElementGenerator.FromString(((IXmlSavable)this).Name, this);
+            result.AppendChildren(XmlElementGenerator.FromSavablePropsOf(this));
             return result;
         }
 
-        void IXmlSavable.FromXmlElement(XmlElement element)
+        object IXmlSavable.FromXmlElement(XmlElement element)
         {
-            XmlElementConverter.ToSavablePropsOfInstance(this, element.GetChildElements());
+            XmlElementConverter.ToSavablePropsOf(this, element.GetChildElements());
+            return this;
         }
     }
 }
