@@ -14,7 +14,7 @@ using WhAnno.Anno;
 using WhAnno.Utils;
 using WhAnno.Anno.Base;
 using WhAnno.PictureShow;
-using WhAnno.Utils.Expend;
+using WhAnno.Utils.Expand;
 
 namespace WhAnno
 {
@@ -277,6 +277,8 @@ namespace WhAnno
             Setting.Global.Categories.Add("C");
             Setting.Global.Categories.Add("D");
 
+            Setting.Global.Categories["A"].Brush.pen = new Pen(Color.AliceBlue, 10);
+            Setting.Global.Categories["B"].Brush.font = new Font(new FontFamily(System.Drawing.Text.GenericFontFamilies.Monospace), 20);
             Setting.Global.Save("test.xml");
         }
 

@@ -12,7 +12,7 @@ using System.Windows.Forms;
 using WhAnno.Utils;
 using WhAnno.Anno.Base;
 using System.Diagnostics;
-using WhAnno.Utils.Expend;
+using WhAnno.Utils.Expand;
 
 namespace WhAnno.Anno.Base
 {

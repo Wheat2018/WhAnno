@@ -6,42 +6,28 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using WhAnno.Anno.Base;
-using WhAnno.Utils.Expend;
+using WhAnno.Utils.Expand;
 using WhAnno.Utils.XmlSave;
 
 namespace WhAnno.Utils
 {
     public static class XmlExpand
     {
-        public static XmlElement KeyValueToXmlElement<T>(KeyValuePair<string, T> pair)
+        public static XmlElement ToXmlElement(this BrushBase brush)
         {
-            XmlElement res = XmlElementGenerator.FromString("x", pair);
-            res.AppendChildren(XmlElementGenerator.FromNamePropsOf(pair, "Key"));
-            res.AppendChildren(XmlElementGenerator.FromNamePropsOf(pair, "Value"));
+            XmlElement res = XmlElementGenerator.FromString("Wheat", brush);
+            res.AppendChildren(XmlElementGenerator.FromNameFieldsOf(brush, "pen", "font"));
             return res;
         }
-        public static object KeyValueFromXmlElement<T>(KeyValuePair<string, T> _, XmlElement element)
+        public static object FromXmlElement(this BrushBase brush, XmlElement element)
         {
-            return new KeyValuePair<string, T>(element.GetElement("Key").ToNewInstance<string>(),
-                                               element.GetElement("Value").ToNewInstance<T>());
+            XmlElementConverter.ToNameFieldsOf(brush, element.GetChildElements(), "pen", "font");
+            return brush;
         }
-
-        public static XmlElement ToXmlElement(this KeyValuePair<string, Pen> pair) => KeyValueToXmlElement(pair);
-        public static object FromXmlElement(this KeyValuePair<string, Pen> _, XmlElement element)
-        {
-            //Pen没有默认构造，必须手动构造再赋值。
-            Pen pen = Pens.Black;
-            pen = element.GetElement("Value").ToInstance(pen) as Pen;
-            return new KeyValuePair<string, Pen>(element.GetElement("Key").ToNewInstance<string>(), pen);
-        }
-
-        public static XmlElement ToXmlElement(this KeyValuePair<string, string> pair) => KeyValueToXmlElement(pair);
-        public static object FromXmlElement(this KeyValuePair<string, string> pair, XmlElement element) => KeyValueFromXmlElement(pair, element);
-
 
         public static XmlElement ToXmlElement(this Pen pen)
         {
-            XmlElement res = XmlElementGenerator.FromString("x", pen);
+            XmlElement res = XmlElementGenerator.FromString("Wheat", pen);
             res.AppendChildren(XmlElementGenerator.FromNamePropsOf(pen, "Width", "Color"));
             return res;
         }
@@ -53,18 +39,38 @@ namespace WhAnno.Utils
 
         public static XmlElement ToXmlElement(this Color color)
         {
-            XmlElement res = XmlElementGenerator.FromString("x", color);
+            XmlElement res = XmlElementGenerator.FromString("Wheat", color);
             res.AppendChildren(XmlElementGenerator.FromNamePropsOf(color, "A", "R", "G", "B"));
+            if (color.IsNamedColor)
+                res.AppendChildren(XmlElementGenerator.FromNamePropsOf(color, "Name"));
             return res;
         }
         public static object FromXmlElement(this Color _, XmlElement element)
         {
+            //Named Color
+            XmlElement nameColor = element.GetElement("Name");
+            if (nameColor != null) return Color.FromName(nameColor.ToNewInstance<string>());
+            //Other Color
             return Color.FromArgb(element.GetElement("A").ToNewInstance<int>(),
                                   element.GetElement("R").ToNewInstance<int>(),
                                   element.GetElement("G").ToNewInstance<int>(),
                                   element.GetElement("B").ToNewInstance<int>());
         }
 
+        public static XmlElement ToXmlElement(this Font font)
+        {
+            XmlElement res = XmlElementGenerator.FromString("Wheat", font);
+            res.AppendChild(XmlElementGenerator.FromString("fontFamily", font.FontFamily.Name));
+            res.AppendChildren(XmlElementGenerator.FromNamePropsOf(font, "Size", "Style"));
+            return res;
+        }
+
+        public static object FromXmlElement(this Font _, XmlElement element)
+        {
+            return new Font(element.GetElement("fontFamily").ToNewInstance<string>(),
+                            element.GetElement("Size").ToNewInstance<float>(),
+                            element.GetElement("Style").ToNewInstance<FontStyle>());
+        }
     }
 
     /// <summary>
@@ -77,104 +83,82 @@ namespace WhAnno.Utils
 
         public class Category : IXmlSavable
         {
-            public string Name { get; set; }
+            public class EqualityComparer : IEqualityComparer<Category>
+            {
+                bool IEqualityComparer<Category>.Equals(Category x, Category y) => x.Name == y.Name;
+                int IEqualityComparer<Category>.GetHashCode(Category obj) => obj.GetHashCode();
+            }
+
+            public static EqualityComparer Comparer => new EqualityComparer();
+
+            public string Name => ((IXmlSavable)this).Name;
 
             public BrushBase Brush { get; set; } = new Anno.Brush.Rectangle();
 
+            string IXmlSavable.Name { get; set; }
+
+            public Category(string name)
+            {
+                ((IXmlSavable)this).Name = name;
+            }
+
             XmlElement IXmlSavable.ToXmlElement()
             {
-                XmlElement res = XmlElementGenerator.FromString(Name, this);
-                res.AppendChildren(XmlElementGenerator.FromNamePropsOf(this, "BrushPen", "BrushType"));
+                XmlElement res = XmlElementGenerator.FromString(((IXmlSavable)this).Name, this);
+                res.AppendChildren(XmlElementGenerator.FromNamePropsOf(this, "Brush"));
                 return res;
             }
 
             object IXmlSavable.FromXmlElement(XmlElement element)
             {
-                XmlElementConverter.ToNameFieldsOf(this, element.GetChildElements(), "BrushPen", "BrushType");
+                ((IXmlSavable)this).Name = element.Name;
+                XmlElementConverter.ToNamePropsOf(this, element.GetChildElements(), "Brush");
                 return this;
             }
-
         }
+
         /// <summary>
         /// 类别的集合。
         /// </summary>
         /// <remarks>不重复地记录类别字符串，每种类别可能包含某些属性值（表现为字典），使用类别字符串以检索到这些属性值。</remarks>
-        public class CategorySet : HashSet<string>, IXmlSavable
+        public class CategorySet : HashSet<Category>, IXmlSavable
         {
-            /// <summary>
-            /// 类别的附加属性。
-            /// </summary>
-            /// <typeparam name="T">属性类型。</typeparam>
-            /// <remarks>若<typeparamref name="T"/>并非实现了<see cref="IConvertible"/>的类型，需要覆盖<see cref="CategoryProperty{T}.PropertyToXmlElement"/>和<see cref="CategoryProperty{T}.PropertyFromXmlElement"/>方法，否则生成Xml或从Xml载入时会发生不可预料的错误。</remarks>
-            public class CategoryProperty<T> : Dictionary<string, T>, IXmlSavable
+
+            public CategorySet(string name) : base(Category.Comparer)
             {
-                public T DefaultValue { get; set; } = default;
-
-                public CategoryProperty(CategorySet owner, string id)
-                {
-                    owner.ItemAdded += (sender, item) => Add(item, DefaultValue);
-                    ((IXmlSavable)this).Name = id;
-                }
-
-                string IXmlSavable.Name { get; set; }
-
-                XmlElement IXmlSavable.ToXmlElement()
-                {
-                    return XmlElementGenerator.FromCollection(((IXmlSavable)this).Name, this, bingdingName: typeof(T).Name);
-                }
-
-                object IXmlSavable.FromXmlElement(XmlElement element)
-                {
-                    XmlElementConverter.ToCollection(this, element, bindingName: typeof(T).Name);
-                    return this;
-                }
-
+                ((IXmlSavable)this).Name = name;
             }
 
-            public CategoryProperty<Pen> Pens { get; private set; }
-
-            public CategoryProperty<string> BrushTypes { get; private set; }
-
-            public CategorySet(string id)
-            {
-                Pens = new CategoryProperty<Pen>(this, "Pens")
-                {
-                    DefaultValue = new Pen(Color.Black, 2),
-                };
-                BrushTypes = new CategoryProperty<string>(this, "BrushTypes")
-                {
-                    DefaultValue = "Rectangle"
-                };
-                ((IXmlSavable)this).Name = id;
-            }
-
-            public event EventHandler<string> ItemAdded;
-            public event EventHandler<string> ItemRemoved;
-
-            public new void Add(string item)
-            {
-                if (base.Add(item)) ItemAdded?.Invoke(this, item);
-            }
-            public new void Remove(string item)
-            {
-                if (base.Remove(item)) ItemRemoved?.Invoke(this, item);
-            }
+            public bool Add(string categoryName) => Add(new Category(categoryName));
 
             string IXmlSavable.Name { get; set; }
 
+            public Category this[string category]
+            {
+                get
+                {
+                    foreach (Category item in this)
+                        if (item.Name == category) return item;
+                    return null;
+                }
+            }
+
             XmlElement IXmlSavable.ToXmlElement()
             {
-                XmlElement result = XmlElementGenerator.FromCollection(((IXmlSavable)this).Name, this, bingdingName: "Category");
-                result.AppendChildren(XmlElementGenerator.FromSavablePropsOf(this));
-                return result;
+                return XmlElementGenerator.FromCollection(((IXmlSavable)this).Name, this, bingdingName: null);
             }
 
             object IXmlSavable.FromXmlElement(XmlElement element)
             {
-                XmlElementConverter.ToCollection(this, element, bindingName: "Category");
-                XmlElementConverter.ToSavablePropsOf(this, element.GetChildElements());
+                XmlElementConverter.ToCollection(this, element, (ele) =>
+                {
+                    Category category = new Category("Wheat");
+                    (category as IXmlSavable).FromXmlElement(ele);
+                    return category;
+                }, bindingName: null);
                 return this;
             }
+
         }
 
         /// <summary>
@@ -182,7 +166,7 @@ namespace WhAnno.Utils
         /// </summary>
         public CategorySet Categories { get; } = new CategorySet("Categories");
 
-        public Setting(string id)
+        internal Setting(string id)
         {
             ((IXmlSavable)this).Name = id;
         }

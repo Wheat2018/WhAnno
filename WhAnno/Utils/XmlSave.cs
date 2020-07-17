@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -43,6 +44,14 @@ namespace WhAnno.Utils.XmlSave
         /// </summary>
         public static XmlDocument GlobalDoc { get; set; }
 
+        private static XmlElement XmlElementRename(XmlElement element, string newName)
+        {
+            XmlElement result = GlobalDoc.CreateElement(newName);
+            result.SetAttributeNodes(element.Attributes);
+            result.AppendChildren(element.ChildNodes);
+            return result;
+        }
+
         /// <summary>
         /// 从某种类型实例创建<see cref="XmlElement"/>。
         /// </summary>
@@ -59,26 +68,14 @@ namespace WhAnno.Utils.XmlSave
         {
             XmlElement result;
             if (instance is IXmlSavable savable)
-            {
-                result = GlobalDoc.CreateElement(name);
-                XmlElement temp = savable.ToXmlElement();
-                result.InnerText = temp.GetText();
-                result.AppendChildren(temp.GetChildElements());
-            }
+                result = XmlElementRename(savable.ToXmlElement(), name);
             else
             {
                 MethodInfo toXmlElement = instance?.GetType().GetExtensionMethod("ToXmlElement");
                 if (toXmlElement != null)
-                {
-                    result = GlobalDoc.CreateElement(name);
-                    XmlElement temp = toXmlElement.Invoke(null, new object[] { instance }) as XmlElement;
-                    result.InnerText = temp.GetText();
-                    result.AppendChildren(temp.GetChildElements());
-                }
+                    result = XmlElementRename(toXmlElement.Invoke(null, new object[] { instance }) as XmlElement, name);
                 else
-                {
                     result = FromString(name, instance);
-                }
             }
             return result;
         }
@@ -131,7 +128,7 @@ namespace WhAnno.Utils.XmlSave
                     if (typeof(IXmlSavable).IsAssignableFrom(typeof(T)))
                         itemToXmlElement = (item) => FromInstance((item as IXmlSavable).Name, item);
                     else
-                        throw new ArgumentNullException($"类型{typeof(T).Name}未实现{typeof(IXmlSavable).Name}，限定名称绑定不可为空。");
+                        throw new ArgumentNullException($"类型{typeof(T).Name}未实现{typeof(IXmlSavable).Name}，限定名称绑定{nameof(bingdingName)}不可为空。");
                 }
                 else
                     itemToXmlElement = (item) => FromInstance(bingdingName, item);
@@ -146,6 +143,37 @@ namespace WhAnno.Utils.XmlSave
         }
 
         /// <summary>
+        /// 从实例中给定属性创建<see cref="XmlElement"/>数组。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <param name="props">给定属性。</param>
+        /// <returns><see cref="XmlElement"/>数组。</returns>
+        /// <remarks>使用<see cref="FromInstance(string, object)"/>转换。</remarks>
+        public static XmlElement[] FromPropsOf(object instance, IEnumerable<PropertyInfo> props)
+        {
+            List<XmlElement> result = new List<XmlElement>();
+            foreach (PropertyInfo prop in props)
+                result.Add(FromInstance(prop.Name, prop.GetValue(instance)));
+
+            return result.ToArray();
+        }
+
+        /// <summary>
+        /// 使用指定筛选方法从实例中筛选属性创建<see cref="XmlElement"/>数组。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <param name="screen">筛选方法，对传入的<see cref="PropertyInfo"/>进行判断，返回是否匹配的布尔值。</param>
+        /// <returns><see cref="XmlElement"/>数组。</returns>
+        /// <remarks>使用<see cref="FromInstance(string, object)"/>转换。</remarks>
+        public static XmlElement[] FromPropsOf(object instance, Func<PropertyInfo, bool> screen = null)
+        {
+            return FromPropsOf(instance,
+                               from prop in instance.GetType().GetProperties() 
+                               where screen == null || screen(prop) 
+                               select prop);
+        }
+
+        /// <summary>
         /// 使用指定绑定约束和/或筛选方法从实例中筛选属性创建<see cref="XmlElement"/>数组。
         /// </summary>
         /// <param name="instance">实例。</param>
@@ -153,18 +181,43 @@ namespace WhAnno.Utils.XmlSave
         /// <param name="screen">筛选方法，对传入的<see cref="PropertyInfo"/>进行判断，返回是否匹配的布尔值。</param>
         /// <returns><see cref="XmlElement"/>数组。</returns>
         /// <remarks>使用<see cref="FromInstance(string, object)"/>转换。</remarks>
-        public static XmlElement[] FromPropsOf(object instance, BindingFlags binding = (BindingFlags)0xffff, Func<PropertyInfo, bool> screen = null)
+        public static XmlElement[] FromPropsOf(object instance, BindingFlags binding, Func<PropertyInfo, bool> screen = null)
+        {
+            return FromPropsOf(instance,
+                               from prop in instance.GetType().GetProperties(binding)
+                               where screen == null || screen(prop)
+                               select prop);
+        }
+
+        /// <summary>
+        /// 从实例中给定字段创建<see cref="XmlElement"/>数组。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <param name="fields">给定字段。</param>
+        /// <returns><see cref="XmlElement"/>数组。</returns>
+        /// <remarks>使用<see cref="FromInstance(string, object)"/>转换。</remarks>
+        public static XmlElement[] FromFieldsOf(object instance, IEnumerable<FieldInfo> fields)
         {
             List<XmlElement> result = new List<XmlElement>();
-            foreach (PropertyInfo prop in instance.GetType().GetProperties(binding))
-            {
-                if (screen == null || screen(prop))
-                {
-                    result.Add(FromInstance(prop.Name, prop.GetValue(instance)));
-                }
-            }
+            foreach (FieldInfo prop in fields)
+                result.Add(FromInstance(prop.Name, prop.GetValue(instance)));
 
             return result.ToArray();
+        }
+
+        /// <summary>
+        /// 使用指定筛选方法从实例中筛选字段创建<see cref="XmlElement"/>数组。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <param name="screen">筛选方法，对传入的<see cref="FieldInfo"/>进行判断，返回是否匹配的布尔值。</param>
+        /// <returns><see cref="XmlElement"/>数组。</returns>
+        /// <remarks>使用<see cref="FromInstance(string, object)"/>转换。</remarks>
+        public static XmlElement[] FromFieldsOf(object instance, Func<FieldInfo, bool> screen = null)
+        {
+            return FromFieldsOf(instance,
+                                from fields in instance.GetType().GetFields()
+                                where screen == null || screen(fields)
+                                select fields);
         }
 
         /// <summary>
@@ -175,18 +228,12 @@ namespace WhAnno.Utils.XmlSave
         /// <param name="screen">筛选方法，对传入的<see cref="FieldInfo"/>进行判断，返回是否匹配的布尔值。</param>
         /// <returns><see cref="XmlElement"/>数组。</returns>
         /// <remarks>使用<see cref="FromInstance(string, object)"/>转换。</remarks>
-        public static XmlElement[] FromFieldsOf(object instance, BindingFlags binding = (BindingFlags)0xffff, Func<FieldInfo, bool> screen = null)
+        public static XmlElement[] FromFieldsOf(object instance, BindingFlags binding, Func<FieldInfo, bool> screen = null)
         {
-            List<XmlElement> result = new List<XmlElement>();
-            foreach (FieldInfo field in instance.GetType().GetFields(binding))
-            {
-                if (screen == null || screen(field))
-                {
-                    result.Add(FromInstance(field.Name, field.GetValue(instance)));
-                }
-            }
-
-            return result.ToArray();
+            return FromFieldsOf(instance,
+                                from fields in instance.GetType().GetFields(binding)
+                                where screen == null || screen(fields)
+                                select fields);
         }
 
         /// <summary>
@@ -280,7 +327,7 @@ namespace WhAnno.Utils.XmlSave
         {
             //生成
             object result;
-            if (typeof(IConvertible).IsAssignableFrom(type))
+            if (typeof(IConvertible).IsAssignableFrom(type) && !type.IsEnum)
                 result = Convert.ChangeType(element.GetText(), type);
             else
             {
@@ -329,7 +376,7 @@ namespace WhAnno.Utils.XmlSave
                 MethodInfo fromXmlElement = instance?.GetType().GetExtensionMethod("FromXmlElement");
                 if (fromXmlElement != null)
                     instance = fromXmlElement.Invoke(null, new object[] { instance, element });
-                else if (instance is IConvertible)
+                else if (instance is IConvertible && !(instance is Enum))
                     instance = Convert.ChangeType(element.GetText(), instance.GetType());
                 else
                     throw new Exception($"实例具有类型{instance.GetType().Name}。该类型" +
@@ -365,7 +412,9 @@ namespace WhAnno.Utils.XmlSave
                 catch (MissingMethodException ex)
                 {
                     throw new MissingMethodException(
-                        $"类型{typeof(T).Name}即没有实现IConvertible，又不支持默认构造。考虑提供参数itemFromXmlElement.", ex);
+                        $"{nameof(ToCollection)}填充集合需要构造类型{typeof(T).Name}的实例。" +
+                        $"而类型{typeof(T).Name}即没有实现IConvertible，又不支持默认构造。" +
+                        $"考虑提供参数{nameof(itemFromXmlElement)}。", ex);
                 }
             };
 
@@ -375,6 +424,81 @@ namespace WhAnno.Utils.XmlSave
                 if (bindingName == null || ele.Name.ToLower() == bindingName.ToLower())
                     collection.Add(itemFromXmlElement(ele));
             }
+        }
+
+        /// <summary>
+        /// 按照<see cref="XmlElement"/>尝试填充实例中的给定属性，以属性名为赋值主键匹配<see cref="XmlElement.Name"/>，区分大小写。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <param name="elements"><see cref="XmlElement"/>数组。</param>
+        /// <param name="props">给定属性。</param>
+        /// <remarks>
+        /// <para>注意：</para>
+        /// <para>所匹配属性在实例中应当不为null，如果为null，使用<see cref="ToNewInstance(XmlElement, Type)"/>生成实例，需悉该方法对类型的要求。</para>
+        /// <para>使用<see cref="ToInstance(XmlElement, object)"/>填充属性内容。</para>
+        /// </remarks>
+        /// <exception cref="MissingMethodException">
+        /// 匹配属性在实例中为null，而属性有以下情况之一：
+        /// 1.类型未实现IConvertible且无默认构造。
+        /// 2.属性没有设置方法。
+        /// </exception>
+        public static void ToPropsOf(object instance, IEnumerable<XmlElement> elements, IEnumerable<PropertyInfo> props)
+        {
+            foreach (PropertyInfo prop in props)
+            {
+                foreach (XmlElement element in elements)
+                {
+                    if (element.Name == prop.Name)
+                    {
+                        object propObject = prop.GetValue(instance);
+                        //属性未赋值，必须申请实例。
+                        if (propObject == null)
+                        {
+                            try
+                            {
+                                propObject = ToNewInstance(element, prop.PropertyType);
+                            }
+                            catch (MissingMethodException ex)
+                            {
+                                throw new MissingMethodException(
+                                    $"属性{prop.Name}({prop.PropertyType.Name})未赋值，" +
+                                    $"且类型{prop.PropertyType.Name}未实现IConvertible且无默认构造。" +
+                                    $"考虑先为属性申请实例，再调用XmlElement填充方法。", ex);
+                            }
+                            if (!prop.CanWrite)
+                                throw new MissingMethodException($"属性{prop.Name}({prop.PropertyType.Name})未赋值且不可赋值。");
+                        }
+                        else
+                            propObject = ToInstance(element, propObject);
+                        if (prop.CanWrite) prop.SetValue(instance, propObject);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 按照<see cref="XmlElement"/>尝试填充实例中的所有通过筛选方法的属性，以属性名为赋值主键匹配<see cref="XmlElement.Name"/>，区分大小写。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <param name="elements"><see cref="XmlElement"/>数组。</param>
+        /// <param name="screen">筛选方法，对传入的<see cref="PropertyInfo"/>进行判断，返回是否匹配的布尔值。</param>
+        /// <remarks>
+        /// <para>注意：</para>
+        /// <para>所匹配属性在实例中应当不为null，如果为null，使用<see cref="ToNewInstance(XmlElement, Type)"/>生成实例，需悉该方法对类型的要求。</para>
+        /// <para>使用<see cref="ToInstance(XmlElement, object)"/>填充属性内容。</para>
+        /// </remarks>
+        /// <exception cref="MissingMethodException">
+        /// 匹配属性在实例中为null，而属性有以下情况之一：
+        /// 1.类型未实现IConvertible且无默认构造。
+        /// 2.属性没有设置方法。
+        /// </exception>
+        public static void ToPropsOf(object instance, IEnumerable<XmlElement> elements, Func<PropertyInfo, bool> screen = null)
+        {
+            ToPropsOf(instance, 
+                      elements,
+                      from prop in instance.GetType().GetProperties()
+                      where screen == null || screen(prop)
+                      select prop);
         }
 
         /// <summary>
@@ -394,46 +518,80 @@ namespace WhAnno.Utils.XmlSave
         /// 1.类型未实现IConvertible且无默认构造。
         /// 2.属性没有设置方法。
         /// </exception>
-        public static void ToPropsOf(object instance, XmlElement[] elements, BindingFlags binding = (BindingFlags)0xffff, Func<PropertyInfo, bool> screen = null)
+        public static void ToPropsOf(object instance, IEnumerable<XmlElement> elements, BindingFlags binding = (BindingFlags)0xffff, Func<PropertyInfo, bool> screen = null)
         {
-            foreach (PropertyInfo prop in instance.GetType().GetProperties(binding))
-            {
-                if (screen == null || screen(prop))
-                {
-                    foreach (XmlElement element in elements)
-                    {
-                        if (element.Name == prop.Name)
-                        {
-                            object propObject = prop.GetValue(instance);
-                            //属性未赋值，必须申请实例。
-                            if (propObject == null)
-                            {
-                                try
-                                {
-                                    propObject = ToNewInstance(element, prop.PropertyType);
-                                }
-                                catch (MissingMethodException ex)
-                                {
-                                    throw new MissingMethodException(
-                                        $"属性{prop.Name}({prop.PropertyType.Name})未赋值，" +
-                                        "且类型{prop.PropertyType.Name}未实现IConvertible且无默认构造。" +
-                                        "考虑先为属性申请实例，再调用XmlElement填充方法。", ex);
-                                }
-                                if (!prop.CanWrite)
-                                    throw new MissingMethodException($"属性{prop.Name}({prop.PropertyType.Name})未赋值且不可赋值。");
-                            }
-                            else
-                                propObject = ToInstance(element, propObject);
-                            if (prop.CanWrite) prop.SetValue(instance, propObject);
-                        }
-                    }
+            ToPropsOf(instance,
+                      elements,
+                      from prop in instance.GetType().GetProperties(binding)
+                      where screen == null || screen(prop)
+                      select prop);
+        }
 
+        /// <summary>
+        /// 按照<see cref="XmlElement"/>尝试填充实例中的给定属性，以属性名为赋值主键匹配<see cref="XmlElement.Name"/>，区分大小写。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <param name="elements"><see cref="XmlElement"/>数组。</param>
+        /// <param name="fields">给定字段。</param>
+        /// <remarks>
+        /// <para>注意：</para>
+        /// <para>所匹配字段在实例中应当不为null，如果为null，使用<see cref="ToNewInstance(XmlElement, Type)"/>生成实例，需悉该方法对类型的要求。</para>
+        /// <para>使用<see cref="ToInstance(XmlElement, object)"/>填充字段内容。</para>
+        /// </remarks>
+        public static void ToFieldsOf(object instance, IEnumerable<XmlElement> elements, IEnumerable<FieldInfo> fields)
+        {
+            foreach (FieldInfo field in fields)
+            {
+                foreach (XmlElement element in elements)
+                {
+                    if (element.Name == field.Name)
+                    {
+                        object fieldObject = field.GetValue(instance);
+                        //字段未赋值，必须申请实例。
+                        if (fieldObject == null)
+                        {
+                            try
+                            {
+                                fieldObject = ToNewInstance(element, field.FieldType);
+                            }
+                            catch (MissingMethodException ex)
+                            {
+                                throw new MissingMethodException(
+                                    $"字段{field.Name}({field.FieldType.Name})未赋值，" +
+                                    $"且类型{field.FieldType.Name}未实现IConvertible且无默认构造。" +
+                                    $"考虑先为属性申请实例，再调用XmlElement填充方法。", ex);
+                            }
+                        }
+                        else
+                            fieldObject = ToInstance(element, fieldObject);
+                        field.SetValue(instance, fieldObject);
+                    }
                 }
             }
         }
 
         /// <summary>
-        /// 按照<see cref="XmlElement"/>尝试填充实例中的所有通过绑定约束和/或筛选方法的属性，以属性名为赋值主键匹配<see cref="XmlElement.Name"/>，区分大小写。
+        /// 按照<see cref="XmlElement"/>尝试填充实例中的所有通过筛选方法的字段，以属性名为赋值主键匹配<see cref="XmlElement.Name"/>，区分大小写。
+        /// </summary>
+        /// <param name="instance">实例。</param>
+        /// <param name="elements"><see cref="XmlElement"/>数组。</param>
+        /// <param name="screen">筛选方法，对传入的<see cref="FieldInfo"/>进行判断，返回是否匹配的布尔值。</param>
+        /// <remarks>
+        /// <para>注意：</para>
+        /// <para>所匹配字段在实例中应当不为null，如果为null，使用<see cref="ToNewInstance(XmlElement, Type)"/>生成实例，需悉该方法对类型的要求。</para>
+        /// <para>使用<see cref="ToInstance(XmlElement, object)"/>填充字段内容。</para>
+        /// </remarks>
+        public static void ToFieldsOf(object instance, IEnumerable<XmlElement> elements, Func<FieldInfo, bool> screen = null)
+        {
+            ToFieldsOf(instance,
+                       elements,
+                       from field in instance.GetType().GetFields()
+                       where screen == null || screen(field)
+                       select field);
+        }
+
+        /// <summary>
+        /// 按照<see cref="XmlElement"/>尝试填充实例中的所有通过绑定约束和/或筛选方法的字段，以属性名为赋值主键匹配<see cref="XmlElement.Name"/>，区分大小写。
         /// </summary>
         /// <param name="instance">实例。</param>
         /// <param name="elements"><see cref="XmlElement"/>数组。</param>
@@ -444,28 +602,13 @@ namespace WhAnno.Utils.XmlSave
         /// <para>所匹配字段在实例中应当不为null，如果为null，使用<see cref="ToNewInstance(XmlElement, Type)"/>生成实例，需悉该方法对类型的要求。</para>
         /// <para>使用<see cref="ToInstance(XmlElement, object)"/>填充字段内容。</para>
         /// </remarks>
-        public static void ToFieldsOf(object instance, XmlElement[] elements, BindingFlags binding = (BindingFlags)0xffff, Func<FieldInfo, bool> screen = null)
+        public static void ToFieldsOf(object instance, IEnumerable<XmlElement> elements, BindingFlags binding = (BindingFlags)0xffff, Func<FieldInfo, bool> screen = null)
         {
-            foreach (FieldInfo field in instance.GetType().GetFields(binding))
-            {
-                if (screen == null || screen(field))
-                {
-                    foreach (XmlElement element in elements)
-                    {
-                        if (element.Name == field.Name)
-                        {
-                            object fieldObject = field.GetValue(instance);
-                            //字段未赋值，必须申请实例。
-                            if (fieldObject == null)
-                                fieldObject = ToNewInstance(element, field.FieldType);
-                            else
-                                fieldObject = ToInstance(element, fieldObject);
-                            field.SetValue(instance, fieldObject);
-                        }
-                    }
-
-                }
-            }
+            ToFieldsOf(instance,
+                       elements,
+                       from field in instance.GetType().GetFields(binding)
+                       where screen == null || screen(field)
+                       select field);
         }
 
         /// <summary>
@@ -473,7 +616,7 @@ namespace WhAnno.Utils.XmlSave
         /// </summary>
         /// <param name="instance">实例。</param>
         /// <param name="elements"><see cref="XmlElement"/>数组。</param>
-        public static void ToSavablePropsOf(object instance, XmlElement[] elements)
+        public static void ToSavablePropsOf(object instance, IEnumerable<XmlElement> elements)
         {
             ToPropsOf(instance,
                       elements,
@@ -488,7 +631,7 @@ namespace WhAnno.Utils.XmlSave
         /// <param name="instance">实例。</param>
         /// <param name="names">名称数组。</param>
         /// <returns></returns>
-        public static void ToNamePropsOf(object instance, XmlElement[] elements, params string[] names)
+        public static void ToNamePropsOf(object instance, IEnumerable<XmlElement> elements, params string[] names)
         {
             ToPropsOf(instance, elements, screen: (prop) =>
             {
@@ -504,7 +647,7 @@ namespace WhAnno.Utils.XmlSave
         /// <param name="instance">实例。</param>
         /// <param name="names">名称数组。</param>
         /// <returns></returns>
-        public static void ToNameFieldsOf(object instance, XmlElement[] elements, params string[] names)
+        public static void ToNameFieldsOf(object instance, IEnumerable<XmlElement> elements, params string[] names)
         {
             ToFieldsOf(instance, elements, screen: (field) =>
             {
@@ -543,10 +686,25 @@ namespace WhAnno.Utils.XmlSave
         /// <param name="node">该节点。</param>
         /// <param name="children">要添加的节点数组。</param>
         /// <returns>添加的节点数组</returns>
-        public static XmlNode[] AppendChildren(this XmlNode node, XmlNode[] children)
+        public static T AppendChildren<T>(this XmlNode node, T children) where T : IEnumerable
         {
-            foreach (XmlNode child in children) node.AppendChild(child);
+            var e = children.GetEnumerator();
+            bool next = e.MoveNext();
+            XmlNode child = e.Current as XmlNode;
+            while (next)
+            {
+                next = e.MoveNext();
+                //由于AppenChild可能改变children的链表结构（如果是链表），所以应先取得下一节点，再调用AppenChild。
+                node.AppendChild(child);
+                if (next) child = e.Current as XmlNode;
+            }
             return children;
+        }
+
+        public static T SetAttributeNodes<T>(this XmlElement node, T attributes) where T : IEnumerable
+        {
+            foreach (XmlAttribute attribute in attributes) node.SetAttribute(attribute.Name, attribute.Value);
+            return attributes;
         }
 
         /// <summary>
@@ -555,14 +713,12 @@ namespace WhAnno.Utils.XmlSave
         /// <param name="node"></param>
         /// <param name="regex">正则表达式。</param>
         /// <returns></returns>
-        public static XmlElement[] GetChildElements(this XmlElement node, Regex regex = null)
+        public static IEnumerable<XmlElement> GetChildElements(this XmlElement node, Regex regex = null)
         {
-            List<XmlElement> children = new List<XmlElement>();
-            foreach (XmlNode child in node.ChildNodes)
-                if (child is XmlElement element)
-                    if (regex == null || regex.IsMatch(child.Name)) children.Add(element);
-
-            return children.ToArray();
+            return from XmlNode child in node.ChildNodes
+                   where child is XmlElement
+                   where regex == null || regex.IsMatch(child.Name)
+                   select child as XmlElement;
         }
 
         /// <summary>
@@ -609,10 +765,18 @@ namespace WhAnno.Utils.XmlSave
                     resEnum = Search.DFS(element, explorer, goal);
                     break;
             }
-            if (resEnum != null && resEnum.Any())
-                return resEnum.First();
-            return null;
+            return resEnum?.FirstOrDefault();
         }
+    }
+
+    /// <summary>
+    /// 扩展枚举类型的<see cref="IXmlSavable"/>方法。
+    /// </summary>
+    public static class XmlEnumExpand
+    {
+        public static XmlElement ToXmlElement(this Enum e) => XmlElementGenerator.FromString("Wheat", e);
+        public static object FromXmlElement(this Enum e, XmlElement element) => Enum.Parse(e.GetType(),
+                                                                                           element.ToNewInstance<string>());
     }
 
     public static class TypeMethods
@@ -621,9 +785,10 @@ namespace WhAnno.Utils.XmlSave
         /// 在当前执行的代码的程序集中搜索该类型的指定名称扩展方法。
         /// </summary>
         /// <param name="type"></param>
-        /// <param name="name"></param>
+        /// <param name="name">方法名称。</param>
+        /// <param name="assignableMethod">指示当该类型下找不到对应扩展方法时，是否继续寻找Assignable类型方法（见<see cref="Type.IsAssignableFrom(Type)"/>）。</param>
         /// <returns></returns>
-        public static MethodInfo GetExtensionMethod(this Type type, string name)
+        public static MethodInfo GetExtensionMethod(this Type type, string name, bool assignableMethod = true)
         {
             var query = from t in Assembly.GetExecutingAssembly().GetTypes()
                         where !t.IsGenericType && !t.IsNested
@@ -632,8 +797,19 @@ namespace WhAnno.Utils.XmlSave
                               && method.IsDefined(typeof(ExtensionAttribute), false)
                               && method.GetParameters()[0].ParameterType == type
                         select method;
-            if (!query.Any()) return null;
-            return query.First();
+            MethodInfo res = query.FirstOrDefault();
+            if (res == null && assignableMethod)
+            {
+                query = from t in Assembly.GetExecutingAssembly().GetTypes()
+                        where !t.IsGenericType && !t.IsNested
+                        from method in t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                        where method.Name == name
+                              && method.IsDefined(typeof(ExtensionAttribute), false)
+                              && method.GetParameters()[0].ParameterType.IsAssignableFrom(type)
+                        select method;
+                res = query.FirstOrDefault();
+            }
+            return res;
         }
     }
 

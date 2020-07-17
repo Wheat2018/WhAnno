@@ -15,7 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
-using WhAnno.Utils.Expend;
+using WhAnno.Utils.Expand;
 
 /// <summary>
 /// 提供一些实用的方法或控件。可以根据需求功能重新实现它们。
@@ -578,7 +578,7 @@ namespace WhAnno.Utils
     /// <summary>
     /// 为某些类拓展一些方法。
     /// </summary>
-    namespace Expend
+    namespace Expand
     {
         /// <summary>
         /// <see cref="ProgressBar"/>颜色。

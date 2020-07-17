@@ -15,7 +15,7 @@ using WhAnno.Anno;
 using WhAnno.Utils;
 using WhAnno.Anno.Base;
 using System.Collections;
-using WhAnno.Utils.Expend;
+using WhAnno.Utils.Expand;
 
 namespace WhAnno
 {

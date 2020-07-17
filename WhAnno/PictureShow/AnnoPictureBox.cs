@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using WhAnno.Anno.Base;
 using WhAnno.Utils;
-using WhAnno.Utils.Expend;
+using WhAnno.Utils.Expand;
 
 namespace WhAnno.PictureShow
 {
