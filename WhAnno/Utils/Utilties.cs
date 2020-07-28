@@ -542,6 +542,49 @@ namespace WhAnno.Utils
 
     }
 
+    public static class ControlFocusStyle
+    {
+        /// <summary>
+        /// 设置获取焦点时的视觉边框。
+        /// </summary>
+        /// <param name="ctl"><see cref="Control"/>实例。</param>
+        public static void SetFocusStyle(Control ctl)
+        {
+            ctl.MouseDown += MouseDown;
+            ctl.Paint += Paint;
+            ctl.GotFocus += ControlInvalidate;
+            ctl.LostFocus += ControlInvalidate;
+        }
+
+        /// <summary>
+        /// 去除获取焦点时的视觉边框。
+        /// </summary>
+        /// <param name="ctl"><see cref="Control"/>实例。</param>
+        public static void RemoveFocusStyle(Control ctl)
+        {
+            ctl.MouseDown -= MouseDown;
+            ctl.Paint -= Paint;
+            ctl.GotFocus -= ControlInvalidate;
+            ctl.LostFocus -= ControlInvalidate;
+        }
+
+        private static void MouseDown(object sender, MouseEventArgs e)
+        {
+            if (sender is Control ctl)
+                if (ctl.GetStyle(ControlStyles.Selectable)) 
+                    ctl.Focus();
+        }
+
+        private static void Paint(object sender, PaintEventArgs pe)
+        {
+            if (sender is Control ctl)
+                if (ctl.Focused) 
+                    pe.Graphics.DrawRectangle(new Pen(SystemColors.ActiveCaption, 4), ctl.ClientRectangle);
+        }
+
+        private static void ControlInvalidate(object sender, EventArgs e) => (sender as Control).Invalidate();
+    }
+
     /// <summary>
     /// 专注布尔判断二十年。
     /// </summary>
@@ -746,7 +789,7 @@ namespace WhAnno.Utils
         }
 
         /// <summary>
-        /// 为<see cref="Rectangle"/>矩形类拓展一种转换方式。
+        /// 为<see cref="Rectangle"/>矩形类扩展一种转换方式。
         /// </summary>
         public static class RectangleTransform
         {
@@ -765,6 +808,12 @@ namespace WhAnno.Utils
                 return result;
             }
 
+            /// <summary>
+            /// 从两个点创建矩形。
+            /// </summary>
+            /// <param name="point1">点一。</param>
+            /// <param name="point2">点二。</param>
+            /// <returns></returns>
             public static Rectangle FromTwoPoints(Point point1, Point point2)
             {
                 return new Rectangle(
@@ -790,6 +839,10 @@ namespace WhAnno.Utils
             /// </summary>
             BaseToSub = 1
         }
+
+        /// <summary>
+        /// 为<see cref="Type"/>类扩展一些方法。
+        /// </summary>
         public static class TypeMethods
         {
             /// <summary>
@@ -819,6 +872,24 @@ namespace WhAnno.Utils
                             result.Add(field);
                 }
                 return result.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// 为<see cref="Control"/>类扩展一些方法。
+        /// </summary>
+        public static class ControlMethods
+        {
+            /// <summary>
+            /// 反射调用<see cref="Control.GetStyle(ControlStyles)"/>。
+            /// </summary>
+            /// <param name="ctl"></param>
+            /// <param name="flag">从中返回值的<see cref="ControlStyles"/>位。</param>
+            /// <returns></returns>
+            public static bool GetStyle(this Control ctl, ControlStyles flag)
+            {
+                MethodInfo method = typeof(Control).GetMethod("GetStyle", BindingFlags.Instance | BindingFlags.NonPublic);
+                return (bool)method.Invoke(ctl, new object[] { flag });
             }
         }
 

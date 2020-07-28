@@ -15,6 +15,7 @@ using WhAnno.Utils;
 using WhAnno.Anno.Base;
 using WhAnno.PictureShow;
 using WhAnno.Utils.Expand;
+using WhAnno.AnnoList;
 
 namespace WhAnno
 {
@@ -23,16 +24,18 @@ namespace WhAnno
         string workspace;
         AnnotationBase[] Annotations { get; set; } = null;
 
-        private readonly AnnoPictureListPannel annoPicturePannel = new AnnoPictureListPannel();
-        private readonly BrushListPannel brushListPanel = new BrushListPannel();
+        private readonly AnnoPictureListPanel annoPictureListPanel = new AnnoPictureListPanel();
+        private readonly BrushListPanel brushListPanel = new BrushListPanel();
+        private readonly AnnoLinkListPanel annoLinkListPanel = new AnnoLinkListPanel();
         private readonly Canva canva = new Canva();
 
         private readonly List<AnnoPictureBox> collect = new List<AnnoPictureBox>();
         public MainForm()
         {
-            Controls.Add(annoPicturePannel);
+            Controls.Add(annoPictureListPanel);
             Controls.Add(canva);
             Controls.Add(brushListPanel);
+            Controls.Add(annoLinkListPanel);
 
             InitializeComponent();
         }
@@ -46,9 +49,14 @@ namespace WhAnno
                 GlobalMessage.Handlers += PrintStatus;
             }
             {
-                annoPicturePannel.Dock = DockStyle.Right;
-                annoPicturePannel.Width = 200;
-                annoPicturePannel.Targets.Add(canva);
+                annoLinkListPanel.Dock = DockStyle.Left;
+                annoLinkListPanel.Aspect = 0;
+            }
+            {
+                annoPictureListPanel.Dock = DockStyle.Right;
+                annoPictureListPanel.Width = 200;
+                annoPictureListPanel.Targets.Add(canva);
+                annoPictureListPanel.Targets.Add(annoLinkListPanel);
             }
             {
                 brushListPanel.Dock = DockStyle.Right;
@@ -186,10 +194,10 @@ namespace WhAnno
                     }
                     GlobalMessage.Apply("status", $"共{files.Count}张图像");
 
-                    annoPicturePannel.Clear(true);
+                    annoPictureListPanel.Clear(true);
                     collect.ForEach((ctl) => { ctl.Image?.Dispose(); ctl.Dispose(); });
-                    annoPicturePannel.IsDynamicAdd = files.Count > 100;
-                    annoPicturePannel.IsDynamicDispose = files.Count > 100;
+                    annoPictureListPanel.IsDynamicAdd = files.Count > 100;
+                    annoPictureListPanel.IsDynamicDispose = files.Count > 100;
 
                     //虚加载所有图像，并发送进度消息。
                     GlobalMessage.Progress progress = new GlobalMessage.Progress(files.Count)
@@ -201,13 +209,13 @@ namespace WhAnno
                     AnnoPictureBox[] annoPictures = new AnnoPictureBox[files.Count];
                     for (int i = 0; i < files.Count; i++)
                     {
-                        annoPictures[i] = new AnnoPictureBox() { FilePath = files[i].FullName };
+                        annoPictures[i] = new AnnoPictureBox(files[i].FullName);
                         progress.Report(i + 1);
                     }
-                    annoPicturePannel.AddRange(annoPictures);
+                    annoPictureListPanel.AddRange(annoPictures);
                     collect.AddRange(annoPictures);
 
-                    annoPicturePannel.ForEachItem((item) => item.paintIndexFont = new Font("微软雅黑", 15));
+                    annoPictureListPanel.ForEachItem((item) => item.paintIndexFont = new Font("微软雅黑", 15));
 
                 }
                 catch (Exception ex)
@@ -220,7 +228,7 @@ namespace WhAnno
         protected override void OnLayout(LayoutEventArgs levent)
         {
             base.OnLayout(levent);
-            canva.Width = annoPicturePannel.Location.X - canva.Location.X;
+            canva.Width = annoPictureListPanel.Location.X - canva.Location.X;
         }
 
         private void 退出ToolStripMenuItem_Click(object sender, EventArgs e)
@@ -251,20 +259,20 @@ namespace WhAnno
                                         Annotations[i] = null;
                                     }
                                 }
-                            });
+                            }, () => _item.Invalidate());
                         }
 
-                        GlobalMessage.Progress progress = new GlobalMessage.Progress(annoPicturePannel.Count)
+                        GlobalMessage.Progress progress = new GlobalMessage.Progress(annoPictureListPanel.Count)
                         {
                             ProgressingFormatString = "正在处理第{1}项，共{2}项",
                             Print = PrintStatus
                         };
-                        (annoPicturePannel as ListPannel<AnnoPictureBox>).ForEachItem((item) =>
+                        (annoPictureListPanel as ListPanel<AnnoPictureBox>).ForEachItem((item) =>
                         {
                             ItemAdd(null, item, null);
                             progress.IncReport();
                         });
-                        annoPicturePannel.ItemAdded += ItemAdd;
+                        annoPictureListPanel.ItemAdded += ItemAdd;
                     }
                 }
             }
@@ -287,5 +295,6 @@ namespace WhAnno
             Setting.Global.Load("test.xml");
             GlobalMessage.Add(Setting.Global);
         }
+
     }
 }

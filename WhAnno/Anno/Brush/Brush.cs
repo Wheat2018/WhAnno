@@ -19,6 +19,7 @@ namespace WhAnno.Anno.Base
     /// <summary>
     /// 定义画笔类的共有特性及约束，提供一些适用于所有画笔类的静态方法。
     /// </summary>
+    /// <remarks>画笔类提供使用GDI+绘制标注的方法，以及一系列对<see cref="Canva"/>类消息的处理委托。</remarks>
     public abstract class BrushBase : PictureBox
     {
         //Properties
@@ -67,24 +68,103 @@ namespace WhAnno.Anno.Base
         /// <returns>当前画笔所构造的标注，如果画笔未准备好，将返回null</returns>
         public abstract AnnotationBase GenerateAnnotation();
 
+        //Overridable
         /// <summary>
-        /// 鼠标按下事件委托。
+        /// 鼠标按键按下事件委托。
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        /// <param name="cvt">坐标变换规则</param>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">鼠标事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
         /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseDown(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 鼠标移动事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">鼠标事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseMove(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 鼠标按键释放事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">鼠标事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseUp(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 鼠标点击事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">鼠标事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseClick(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 鼠标滚动事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">鼠标事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseWheel(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 鼠标进入控件区域事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseEnter(object sender, EventArgs e, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 鼠标离开控件区域事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseLeave(object sender, EventArgs e, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 鼠标悬停事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseHover(object sender, EventArgs e, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 单击事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateClick(object sender, EventArgs e, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 命令键按下事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="msg">Windows消息。</param>
+        /// <param name="keyData">按键信息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateProcessCmdKey(object sender, ref Message msg, Keys keyData, ICoorConverter cvt = null) => true;
+        /// <summary>
+        /// 键盘按键按下事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">按键事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual void DelegateKeyPress(object sender, KeyPressEventArgs e, ICoorConverter cvt = null) {; }
+        /// <summary>
+        /// 重绘事件委托。
+        /// </summary>
+        /// <param name="sender">消息发送者。</param>
+        /// <param name="e">重绘事件消息。</param>
+        /// <param name="cvt">坐标变换规则。</param>
+        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual void DelegatePaint(object sender, PaintEventArgs e, ICoorConverter cvt = null) {; }
 
         //Methods
@@ -155,13 +235,27 @@ namespace WhAnno.Anno.Base
         }
     }
 
-    public class AnnotationBase
+    public class AnnotationBase : ICloneable
     {
         //Properties
         /// <summary>
         /// 获取本标注类型的画笔类型。
         /// </summary>
         public Type BrushType => GetBrushTypeOf(GetType());
+
+        /// <summary>
+        /// 获取标注的子类字段。即非共有标注属性<see cref="file"/>、<see cref="category"/>等。
+        /// </summary>
+        public FieldInfo[] SubFields
+        {
+            get
+            {
+                var query = from field in GetType().GetFields()
+                            where field.DeclaringType != typeof(AnnotationBase)
+                            select field;
+                return query.ToArray();
+            }
+        }
 
         //Fields
         /// <summary>
@@ -203,9 +297,9 @@ namespace WhAnno.Anno.Base
         }
 
         /// <summary>
-        /// 获取标注实例的所有字段值。
+        /// 获取标注实例的字段值。
         /// </summary>
-        /// <param name="annotaion">标注实例</param>
+        /// <param name="fields">指定字段，若保持null则获取全部字段。</param>
         /// <returns></returns>
         /// <remarks>
         /// 若所给实例不是标注类型，返回null
@@ -244,6 +338,16 @@ namespace WhAnno.Anno.Base
                 }
 
             }
+        }
+
+        public override string ToString()
+        {
+            StringBuilder builder = new StringBuilder(category);
+            builder.Append('{');
+            foreach (object fieldValue in GetFieldsValues(SubFields))
+                builder.Append(fieldValue.ToString()).Append(',');
+            builder[builder.Length - 1] = '}';
+            return builder.ToString();
         }
 
 
@@ -286,6 +390,13 @@ namespace WhAnno.Anno.Base
             return types.ToArray();
         }
 
+        public object Clone()
+        {
+            AnnotationBase result = Assembly.GetExecutingAssembly().CreateInstance(GetType().FullName) as AnnotationBase;
+            FieldInfo[] fields = GetType().GetFields();
+            result.SetFieldsValues(fields, GetFieldsValues(fields));
+            return result;
+        }
     }
 }
 
@@ -302,8 +413,6 @@ namespace WhAnno.Anno.Brush
         public class Annotation : AnnotationBase
         {
             public int x, y, width, height;
-
-            public override string ToString() => "{" + $"{x},{y},{width},{height}" + "}";
         }
 
         /// <summary>
@@ -347,7 +456,7 @@ namespace WhAnno.Anno.Brush
                 System.Drawing.Point point = e.Location;
                 if (cvt != null) point = cvt.ReConvert(point);
                 downPoint = point;
-                downTempAnno = TempAnno;
+                downTempAnno = TempAnno.Clone() as Annotation;
             }
 
             return true;
@@ -367,24 +476,17 @@ namespace WhAnno.Anno.Brush
                     Status = BrushStatus.Building;
                     System.Drawing.Rectangle rect = RectangleTransform.FromTwoPoints(downPoint, point);
 
-                    TempAnno = new Annotation()
-                    {
-                        x = rect.X,
-                        y = rect.Y,
-                        width = rect.Width,
-                        height = rect.Height
-                    };
+                    TempAnno.x = rect.X;
+                    TempAnno.y = rect.Y;
+                    TempAnno.width = rect.Width;
+                    TempAnno.height = rect.Height;
                 }
                 else
                 {
                     Size delta = new Size(point.X - downPoint.X, point.Y - downPoint.Y);
-                    TempAnno = new Annotation()
-                    {
-                        x = downTempAnno.x + delta.Width,
-                        y = downTempAnno.y + delta.Height,
-                        width = TempAnno.width,
-                        height = TempAnno.height
-                    };
+
+                    TempAnno.x = downTempAnno.x + delta.Width;
+                    TempAnno.y = downTempAnno.y + delta.Height;
                 }
                 (sender as Control).Invalidate();
                 GlobalMessage.Add("status", TempAnno.ToString());
@@ -393,14 +495,9 @@ namespace WhAnno.Anno.Brush
             {
                 if (Status == BrushStatus.Free && TempAnno != null)
                 {
+                    TempAnno.x = point.X - TempAnno.width / 2;
+                    TempAnno.y = point.Y - TempAnno.height / 2;
 
-                    TempAnno = new Annotation()
-                    {
-                        x = point.X - TempAnno.width / 2,
-                        y = point.Y - TempAnno.height / 2,
-                        width = TempAnno.width,
-                        height = TempAnno.height
-                    };
                     (sender as Control).Invalidate();
                     GlobalMessage.Add("status", TempAnno.ToString());
                 }

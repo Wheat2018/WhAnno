@@ -28,7 +28,7 @@ namespace WhAnno
         private readonly string AnnoFilePath;
         private string FileContext;
 
-        private readonly BrushListPannel brushListPanel = new BrushListPannel();
+        private readonly BrushListPanel brushListPanel = new BrushListPanel();
         private readonly Process.UniqueAsync UniqueAsyncProcess = new Process.UniqueAsync();
         public AnnoLoaderForm(string annoFilePath)
         {
@@ -69,7 +69,7 @@ namespace WhAnno
                         listView1.Columns.Add($"{field.Name}<{field.FieldType.Name}>");
                     
                     listView1.AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize);
-                    TextBox2_TextChanged(this, new EventArgs());
+                    TextBox2_TextChanged(this, EventArgs.Empty);
                 };
                 brushListPanel.Index = 0;
             }
@@ -152,19 +152,26 @@ namespace WhAnno
                         e.Cancel = true;
                         break;
                     case DialogResult.Yes:
-                        string[] patterns = RegexText.GetLines();
-                        MatchCollection matches = Regex.Matches(FileContext, patterns[0]);
-                        Annotations = GetAnnoFromRegex(brushListPanel.CurrentItem, matches.ToStringArray(),
-                                                       patterns.SubArray(1, patterns.Length - 1),
-                                                       brushListPanel.CurrentItem.AnnoType.GetFields(FieldsOrder.BaseToSub),
-                                                       progress: new GlobalMessage.Progress() 
-                                                       {
-                                                           Print = PrintStatus,
-                                                           ProgressingFormatString = "计算中，完成{0}%"
-                                                       });
+                        try
+                        {
+                            string[] patterns = RegexText.GetLines();
+                            MatchCollection matches = Regex.Matches(FileContext, patterns[0]);
+                            Annotations = GetAnnoFromRegex(brushListPanel.CurrentItem, matches.ToStringArray(),
+                                                           patterns.SubArray(1, patterns.Length - 1),
+                                                           brushListPanel.CurrentItem.AnnoType.GetFields(FieldsOrder.BaseToSub),
+                                                           progress: new GlobalMessage.Progress() 
+                                                           {
+                                                               Print = PrintStatus,
+                                                               ProgressingFormatString = "计算中，完成{0}%"
+                                                           });
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("正则匹配错误：" + ex.Message, ex.Source);
+                            e.Cancel = true;
+                        }
                         break;
                     case DialogResult.No:
-                        
                         break;
                 }
             }
@@ -172,12 +179,12 @@ namespace WhAnno
             base.OnClosing(e);
         }
 
-        void IDisposable.Dispose()
+        public new void Dispose()
         {
             //结束UniqueAsyncProcess
             UniqueAsyncProcess.End();
             Annotations = null;
-            Dispose();
+            base.Dispose();
             GC.Collect();
         }
 

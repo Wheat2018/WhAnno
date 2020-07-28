@@ -56,37 +56,7 @@ namespace WhAnno.PictureShow
             Paint += PaintText;
         }
 
-        public AnnoPictureBox(string filePath) : this() => SetPicture(filePath);
-
-        /// <summary>
-        /// 加载图像。
-        /// </summary>
-        /// <param name="filePath">文件路径</param>
-        public void SetPicture(string filePath)
-        {
-            FilePath = filePath;
-            //Image更改会自动触发重绘
-            Image = new Bitmap(filePath);
-        }
-
-        /// <summary>
-        /// 异步加载图像。
-        /// </summary>
-        /// <param name="filePath">文件路径</param>
-        /// <param name="completeCallBack">异步加载完成的回调委托</param>
-        /// <remarks>图像I/O操作在异步线程上执行，完成时回调委托在主调方线程上排队执行。</remarks>
-        public async void SetPictureAsync(string filePath, Action completeCallBack = null)
-        {
-            FilePath = filePath;
-            //异步读取图像文件
-            //Image更改会自动触发重绘
-            Image = await Task.Run(Process.CatchAction(() =>
-            {
-                Bitmap bitmap = new Bitmap(filePath);
-                return bitmap.GetThumbnailImage(Width, Height, null, IntPtr.Zero);
-            }));
-            completeCallBack?.Invoke();
-        }
+        public AnnoPictureBox(string filePath) : this() => FilePath = filePath;
 
         static public bool CheckAnnotation(AnnotationBase annotation, string filePath)
         {

@@ -15,7 +15,7 @@ using WhAnno.Utils;
 
 namespace WhAnno.PictureShow
 {
-    class AnnoPictureListPannel : DynamicListPannel<AnnoPictureBox>
+    class AnnoPictureListPanel : DynamicListPanel<AnnoPictureBox>
     {
         //Properties
         /// <summary>
@@ -46,10 +46,11 @@ namespace WhAnno.PictureShow
         /// <summary>
         /// 默认构造。设置滚动条和边框样式。
         /// </summary>
-        public AnnoPictureListPannel()
+        public AnnoPictureListPanel()
         {
             SetStyle(ControlStyles.OptimizedDoubleBuffer
-                     | ControlStyles.AllPaintingInWmPaint, true);
+                     | ControlStyles.AllPaintingInWmPaint
+                     | ControlStyles.Selectable, true);
 
             AutoScroll = true;
             BorderStyle = BorderStyle.FixedSingle;
@@ -65,24 +66,10 @@ namespace WhAnno.PictureShow
         }
 
         /// <summary>
-        /// 异步从文件添加项
-        /// </summary>
-        /// <param name="picFilePath">文件路径</param>
-        /// <param name="completeCallBack">异步加载完成的回调委托</param>
-        /// <remarks>图像I/O操作在异步线程上执行，完成时回调委托在主调方线程上排队执行。</remarks>
-        public void AddAsync(string picFilePath, Action completeCallBack = null)
-        {
-            AnnoPictureBox annoPictureBox = new AnnoPictureBox();
-            annoPictureBox.SetPictureAsync(picFilePath, completeCallBack);
-            Add(annoPictureBox);
-        }
-
-        /// <summary>
         /// 引发适当的动态回收事件。
         /// </summary>
         /// <param name="e"></param>
         public void RaiseDynamicDispose(CancelEventArgs e) => OnDynamicDispose(e);
-
 
         //Override
         /// <summary>
@@ -134,7 +121,6 @@ namespace WhAnno.PictureShow
             OnDynamicDispose(new CancelEventArgs());
             base.OnPaint(e);
         }
-
 
         protected override void OnMouseMove(MouseEventArgs e)
         {

@@ -52,13 +52,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnnoList\AnnoLink.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="AnnoList\AnnoLinkListPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Anno\AnnoLoaderForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Anno\AnnoLoaderForm.Designer.cs">
       <DependentUpon>AnnoLoaderForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Anno\BrushListPannel.cs">
+    <Compile Include="Anno\BrushListPanel.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Anno\Brush\Brush.cs">
@@ -75,14 +81,14 @@
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Utils\Setting.cs" />
-    <Compile Include="Utils\DynamicListPannel.cs">
+    <Compile Include="Utils\DynamicListPanel.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Utils\IItemAcceptable.cs" />
-    <Compile Include="Utils\ListPannel.cs">
+    <Compile Include="Utils\ListPanel.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="PictureShow\AnnoPictureListPannel.cs">
+    <Compile Include="PictureShow\AnnoPictureListPanel.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Program.cs" />

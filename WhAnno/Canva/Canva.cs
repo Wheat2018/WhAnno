@@ -103,19 +103,13 @@ namespace WhAnno.Anno
             SetStyle(ControlStyles.ResizeRedraw
                      | ControlStyles.OptimizedDoubleBuffer
                      | ControlStyles.AllPaintingInWmPaint
-                     | ControlStyles.UserPaint, 
+                     | ControlStyles.UserPaint
+                     | ControlStyles.Selectable,
                 true);
             BorderStyle = BorderStyle.FixedSingle;
 
             //获取焦点时的视觉边框
-            {
-                Paint += (sender, pe) =>
-                {
-                    if (Focused) pe.Graphics.DrawRectangle(new Pen(SystemColors.ActiveCaption, 4), ClientRectangle);
-                };
-                GotFocus += (sender, e) => Invalidate();
-                LostFocus += (sender, e) => Invalidate();
-            }
+            ControlFocusStyle.SetFocusStyle(this);
         }
 
         public void ResetImageBounds() => ImageBounds = ImageZoomDefaultBounds;
@@ -174,7 +168,6 @@ namespace WhAnno.Anno
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            Focus();
             if (AnnoBrush != null && !AnnoBrush.DelegateMouseDown(this, e, this)) return;
 
             base.OnMouseDown(e);
@@ -390,32 +383,32 @@ namespace WhAnno.Anno
 
         Point ICoorConverter.ReConvert(Point point) => PointToRawImage(point);
 
-        void IItemAcceptable<BrushBase>.Accept(BrushBase item)
+        void IItemAcceptable<BrushBase>.Accept(object sender, BrushBase item)
         {
             AnnoBrush = item;
             Invalidate();
         }
 
-        void IItemAcceptable<BrushBase>.Cancel(BrushBase item)
+        void IItemAcceptable<BrushBase>.Cancel(object sender, BrushBase item)
         {
             if (AnnoBrush == item) AnnoBrush = null;
         }
 
-        void IItemAcceptable<AnnoPictureBox>.Accept(AnnoPictureBox item)
+        void IItemAcceptable<AnnoPictureBox>.Accept(object sender, AnnoPictureBox item)
         {
-            OnImageChanging(new EventArgs());
+            OnImageChanging(EventArgs.Empty);
 
             AnnoPicture = item;
             item.Paint += AnnoPicturePaintSync;
             ResetImageBounds();
             AnnoBrush?.Init();
 
-            OnImageChanged(new EventArgs());
+            OnImageChanged(EventArgs.Empty);
         }
 
-        void IItemAcceptable<AnnoPictureBox>.Cancel(AnnoPictureBox item)
+        void IItemAcceptable<AnnoPictureBox>.Cancel(object sender, AnnoPictureBox item)
         {
-            OnImageChanging(new EventArgs());
+            OnImageChanging(EventArgs.Empty);
 
             item.Paint -= AnnoPicturePaintSync;
             if (AnnoPicture == item)
@@ -426,7 +419,7 @@ namespace WhAnno.Anno
                 Invalidate();
             }
 
-            OnImageChanged(new EventArgs());
+            OnImageChanged(EventArgs.Empty);
         }
 
     }

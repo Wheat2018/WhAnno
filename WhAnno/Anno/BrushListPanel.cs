@@ -11,7 +11,7 @@ using WhAnno.PictureShow;
 
 namespace WhAnno.Anno
 {
-    class BrushListPannel : ListPannel<BrushBase>
+    class BrushListPanel : ListPanel<BrushBase>
     {
         /// <summary>
         /// 禁用ListPanel的动态工作区大小功能
@@ -22,7 +22,7 @@ namespace WhAnno.Anno
         /// </summary>
         public Padding ItemMargin { get; set; } = new Padding(8);
 
-        public BrushListPannel()
+        public BrushListPanel()
         {
             BorderStyle = BorderStyle.FixedSingle;
         }

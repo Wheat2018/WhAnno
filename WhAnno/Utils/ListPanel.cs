@@ -11,7 +11,7 @@ using System.Windows.Forms;
 namespace WhAnno.Utils
 {
     /// <summary>
-    /// <see cref="ListPannel{ItemType}"/>布局滚动方向。
+    /// <see cref="ListPanel{ItemType}"/>布局滚动方向。
     /// </summary>
     public enum FlowMode
     { 
@@ -29,8 +29,9 @@ namespace WhAnno.Utils
     /// 具有自动排版功能的列表框。每一项必须继承自<see cref="Control"/>，以便列表框可以对齐进行排版。
     /// </summary>
     /// <typeparam name="ItemType">项类型：继承自<see cref="Control"/>的类型。</typeparam>
-    class ListPannel<ItemType> : FlowLayoutPanel where ItemType : Control
+    class ListPanel<ItemType> : Panel where ItemType : Control
     {
+        //Fields
         private ItemType currentItem = null;
 
         //Properties
@@ -57,7 +58,33 @@ namespace WhAnno.Utils
         /// <summary>
         /// 获取或设置绘制项的纵横比，默认为1.
         /// </summary>
+        /// <remarks>设置为非正数，即不保持纵横比。使用<see cref="MinorSideLength"/>设置次要边长。</remarks>
         public float Aspect { get; set; } = 1;
+        /// <summary>
+        /// 次要边长。<see cref="FlowMode"/>为<see cref="FlowMode.Horizon"/>时为宽度、<see cref="FlowMode.Vertical"/>时为高度。
+        /// </summary>
+        /// <remarks>仅当<see cref="Aspect"/>为非正数时有效。</remarks>
+        public int MinorSideLength 
+        {
+            get
+            {
+                if (Count > 0)
+                {
+                    if (FlowMode == FlowMode.Horizon) return GetItem(0).Width;
+                    else return GetItem(0).Height;
+                }
+                else
+                    return default;
+            }
+            set
+            {
+                if (Count > 0)
+                {
+                    if (FlowMode == FlowMode.Horizon) GetItem(0).Width = value;
+                    else GetItem(0).Height = value;
+                }
+            }
+        }
         /// <summary>
         /// 获取或设置当前选中项，未选中项时为null。
         /// </summary>
@@ -72,18 +99,14 @@ namespace WhAnno.Utils
 
                 ItemType lastItem = currentItem;
                 currentItem = value;
-                if (lastItem != null) OnItemCanceled(lastItem, new EventArgs());
-                if (value != null) OnItemSelected(value, new EventArgs());
+                if (lastItem != null) OnItemCanceled(lastItem, EventArgs.Empty);
+                if (value != null) OnItemSelected(value, EventArgs.Empty);
             }
         }
         /// <summary>
         /// 获取或设置ListPanel的布局滚动方向
         /// </summary>
-        public FlowMode FlowMode
-        {
-            get => WrapContents == true ? FlowMode.Vertical : FlowMode.Horizon;
-            set => WrapContents = value == FlowMode.Vertical;
-        }
+        public FlowMode FlowMode { get; set; } = FlowMode.Vertical;
         /// <summary>
         /// 所有项。
         /// </summary>
@@ -131,24 +154,17 @@ namespace WhAnno.Utils
 
         //Method
         /// <summary>
-        /// 构造<see cref="ListPannel{ItemType}"/>。
+        /// 构造<see cref="ListPanel{ItemType}"/>。
         /// </summary>
-        /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
-        public ListPannel(bool shareMouseEvent = true)
+        /// <param name="shareMouseEvent">指示<see cref="ListPanel{ItemType}"/>是否共享每个项的鼠标事件</param>
+        public ListPanel(bool shareMouseEvent = true)
         {
             SetStyle(ControlStyles.ResizeRedraw, true);
 
             //获取焦点时的视觉边框
-            {
-                Paint += (sender, pe) =>
-                {
-                    if (Focused) pe.Graphics.DrawRectangle(new Pen(SystemColors.ActiveCaption, 4), ClientRectangle);
-                };
-                GotFocus += (sender, e) => Invalidate();
-                LostFocus += (sender, e) => Invalidate();
-            }
+            ControlFocusStyle.SetFocusStyle(this);
 
-            //绑定子控件触发ListPannel事件
+            //绑定子控件触发ListPanel事件
             {
                 void Click(object _sender, EventArgs _e) => OnItemClick(_sender as ItemType, _e);
                 void MouseEnter(object _sender, EventArgs _e) => OnItemMouseEnter(_sender as ItemType, _e);
@@ -170,7 +186,7 @@ namespace WhAnno.Utils
                 });
             }
 
-            //绑定子控件鼠标事件触发ListPannel鼠标事件
+            //绑定子控件鼠标事件触发ListPanel鼠标事件
             if (shareMouseEvent)
             {
                 void MouseClick(object _sender, MouseEventArgs _e) => OnMouseClick(ParentMouse.Get(this, _sender, _e));
@@ -216,21 +232,21 @@ namespace WhAnno.Utils
         }
 
         /// <summary>
-        /// 构造<see cref="ListPannel{ItemType}"/>并设置封送目标。
+        /// 构造<see cref="ListPanel{ItemType}"/>并设置封送目标。
         /// </summary>
         /// <param name="target">封送目标</param>
-        /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
-        public ListPannel(IItemAcceptable<ItemType> target, bool shareMouseEvent = true) : this(shareMouseEvent)
+        /// <param name="shareMouseEvent">指示<see cref="ListPanel{ItemType}"/>是否共享每个项的鼠标事件</param>
+        public ListPanel(IItemAcceptable<ItemType> target, bool shareMouseEvent = true) : this(shareMouseEvent)
         {
             Targets.Add(target);
         }
 
         /// <summary>
-        /// 构造<see cref="ListPannel{ItemType}"/>并设置封送目标组。
+        /// 构造<see cref="ListPanel{ItemType}"/>并设置封送目标组。
         /// </summary>
         /// <param name="targets">封送目标数组</param>
-        /// <param name="shareMouseEvent">指示ListPannel是否共享每个项的鼠标事件</param>
-        public ListPannel(IItemAcceptable<ItemType>[] targets, bool shareMouseEvent = true) : this(shareMouseEvent)
+        /// <param name="shareMouseEvent">指示<see cref="ListPanel{ItemType}"/>是否共享每个项的鼠标事件</param>
+        public ListPanel(IItemAcceptable<ItemType>[] targets, bool shareMouseEvent = true) : this(shareMouseEvent)
         {
             Targets.AddRange(targets);
         }
@@ -259,7 +275,7 @@ namespace WhAnno.Utils
 
             Items.Add(item);
 
-            OnItemAdded(item, new EventArgs());
+            OnItemAdded(item, EventArgs.Empty);
         }
 
         /// <summary>
@@ -268,8 +284,10 @@ namespace WhAnno.Utils
         /// <param name="items">项数组</param>
         public void AddRange(ItemType[] items)
         {
+            SuspendLayout();
             foreach (ItemType item in items)
                 Add(item);
+            ResumeLayout();
         }
 
         /// <summary>
@@ -282,8 +300,8 @@ namespace WhAnno.Utils
 
             if (CurrentItem == item) CurrentItem = null;
             Items.Remove(item);
-
-            OnItemRemoved(item, new EventArgs());
+            
+            OnItemRemoved(item, EventArgs.Empty);
         }
 
         /// <summary>
@@ -332,7 +350,7 @@ namespace WhAnno.Utils
         protected virtual void OnItemSelected(ItemType item, EventArgs e)
         {
             ScrollControlIntoView(item);
-            Targets.ForEach((target) => target.Accept(item));
+            Targets.ForEach((target) => target.Accept(this, item));
             ItemSelected?.Invoke(this, item, e);
         }
 
@@ -343,7 +361,7 @@ namespace WhAnno.Utils
         /// <param name="e"></param>
         protected virtual void OnItemCanceled(ItemType item, EventArgs e)
         {
-            Targets.ForEach((target) => target.Cancel(item));
+            Targets.ForEach((target) => target.Cancel(this, item));
             ItemCanceled?.Invoke(this, item, e);
         }
 
@@ -396,18 +414,15 @@ namespace WhAnno.Utils
         //Override
         protected override void OnLayout(LayoutEventArgs levent)
         {
+            int index = 0;
             ForEachItem((item) =>
             {
-                item.Width = EachBestDisplaySize.Width - item.Margin.Left - item.Margin.Right;
-                item.Height = EachBestDisplaySize.Height - item.Margin.Top - item.Margin.Bottom;
+                Rectangle bound = BestDisplayBoundOfIndex(index++);
+                item.Location = new Point(bound.X + item.Margin.Left, bound.Y + item.Margin.Top);
+                item.Width = bound.Width - item.Margin.Left - item.Margin.Right;
+                item.Height = bound.Height - item.Margin.Top - item.Margin.Bottom;
             });
             base.OnLayout(levent);
-        }
-
-        protected override void OnMouseDown(MouseEventArgs e)
-        {
-            Focus();
-            base.OnMouseDown(e);
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -478,23 +493,39 @@ namespace WhAnno.Utils
                 SizeF displaySize = new SizeF(LayoutRange.Width, LayoutRange.Height * Aspect);
                 if (FlowMode == FlowMode.Horizon)
                 {
-                    float height = displaySize.Height * MaxClientSize.Width / displaySize.Width;
-                    if (height < MinClientSize.Height)
-                        return new Size((int)(displaySize.Width * MinClientSize.Height / displaySize.Height), MinClientSize.Height);
-                    else if (height > MaxClientSize.Height)
-                        return new Size((int)(displaySize.Width * MaxClientSize.Height / displaySize.Height), MaxClientSize.Height);
+                    if (Aspect <= 0)
+                    {
+                        int width = MinorSideLength * LayoutRange.Width;
+                        return new Size(width, (width < MaxClientSize.Width ? MaxClientSize : MinClientSize).Height);
+                    }
                     else
-                        return new Size(MaxClientSize.Width, (int)height);
+                    {
+                        float height = displaySize.Height * MaxClientSize.Width / displaySize.Width;
+                        if (height < MinClientSize.Height)
+                            return new Size((int)(displaySize.Width * MinClientSize.Height / displaySize.Height), MinClientSize.Height);
+                        else if (height > MaxClientSize.Height)
+                            return new Size((int)(displaySize.Width * MaxClientSize.Height / displaySize.Height), MaxClientSize.Height);
+                        else
+                            return new Size(MaxClientSize.Width, (int)height);
+                    }
                 }
                 else
                 {
-                    float width = displaySize.Width * MaxClientSize.Height / displaySize.Height;
-                    if (width < MinClientSize.Width)
-                        return new Size(MinClientSize.Width, (int)(displaySize.Height * MinClientSize.Width / displaySize.Width));
-                    else if (width > MaxClientSize.Width)
-                        return new Size(MaxClientSize.Width, (int)(displaySize.Height * MaxClientSize.Width / displaySize.Width));
+                    if (Aspect <= 0)
+                    {
+                        int height = MinorSideLength * LayoutRange.Height;
+                        return new Size((height < MaxClientSize.Height ? MaxClientSize : MinClientSize).Width, height);
+                    }
                     else
-                        return new Size((int)width, MaxClientSize.Height);
+                    {
+                        float width = displaySize.Width * MaxClientSize.Height / displaySize.Height;
+                        if (width < MinClientSize.Width)
+                            return new Size(MinClientSize.Width, (int)(displaySize.Height * MinClientSize.Width / displaySize.Width));
+                        else if (width > MaxClientSize.Width)
+                            return new Size(MaxClientSize.Width, (int)(displaySize.Height * MaxClientSize.Width / displaySize.Width));
+                        else
+                            return new Size((int)width, MaxClientSize.Height);
+                    }
                 }
             }
         }
@@ -533,6 +564,18 @@ namespace WhAnno.Utils
                 }
                 return (first, last);
             }
+        }
+
+        /// <summary>
+        /// 获取某索引值的控件最佳显示边界。
+        /// </summary>
+        /// <param name="index">索引值。</param>
+        /// <returns></returns>
+        protected virtual Rectangle BestDisplayBoundOfIndex(int index)
+        {
+            return new Rectangle(new Point(EachBestDisplaySize.Width * (index % LayoutRange.Width) - HorizontalScroll.Value,
+                                           EachBestDisplaySize.Height * (index / LayoutRange.Width) - VerticalScroll.Value),
+                                 EachBestDisplaySize);
         }
 
         /// <summary>

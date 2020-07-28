@@ -83,14 +83,6 @@ namespace WhAnno.Utils
 
         public class Category : IXmlSavable
         {
-            public class EqualityComparer : IEqualityComparer<Category>
-            {
-                bool IEqualityComparer<Category>.Equals(Category x, Category y) => x.Name == y.Name;
-                int IEqualityComparer<Category>.GetHashCode(Category obj) => obj.GetHashCode();
-            }
-
-            public static EqualityComparer Comparer => new EqualityComparer();
-
             public string Name => ((IXmlSavable)this).Name;
 
             public BrushBase Brush { get; set; } = new Anno.Brush.Rectangle();
@@ -99,6 +91,8 @@ namespace WhAnno.Utils
 
             public Category(string name)
             {
+                if (name == null || name.Length == 0)
+                    throw new ArgumentNullException("类别名不可为空");
                 ((IXmlSavable)this).Name = name;
             }
 
@@ -115,6 +109,10 @@ namespace WhAnno.Utils
                 XmlElementConverter.ToNamePropsOf(this, element.GetChildElements(), "Brush");
                 return this;
             }
+
+            public override bool Equals(object obj) => Name == (obj as Category)?.Name;
+
+            public override int GetHashCode() => Name.GetHashCode();
         }
 
         /// <summary>
@@ -124,7 +122,7 @@ namespace WhAnno.Utils
         public class CategorySet : HashSet<Category>, IXmlSavable
         {
 
-            public CategorySet(string name) : base(Category.Comparer)
+            public CategorySet(string name)
             {
                 ((IXmlSavable)this).Name = name;
             }
@@ -133,14 +131,26 @@ namespace WhAnno.Utils
 
             string IXmlSavable.Name { get; set; }
 
-            public Category this[string category]
+            public Category this[string categoryName]
             {
                 get
                 {
                     foreach (Category item in this)
-                        if (item.Name == category) return item;
+                        if (item.Name == categoryName) return item;
                     return null;
                 }
+            }
+
+            public bool Contain(string categoryName) => this[categoryName] != null;
+
+            public bool Remove(string categoryName) => Remove(this[categoryName]);
+
+            public void AutoColor()
+            {
+                Color[] colors = ColorList.Linspace(Count);
+                int i = 0;
+                foreach (Category category in this)
+                    category.Brush.pen.Color = colors[i++];
             }
 
             XmlElement IXmlSavable.ToXmlElement()

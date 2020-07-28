@@ -8,10 +8,10 @@ using System.Windows.Forms;
 namespace WhAnno.Utils
 {
     /// <summary>
-    /// 对于加载项数目巨大时，<see cref="ListPannel{ItemType}"/>会耗费大量时间在添加操作上。<see cref="DynamicListPannel{ItemType}"/>动态进行添加操作，当实际需要显示后续项时，才添加后续项。
+    /// 对于加载项数目巨大时，<see cref="ListPanel{ItemType}"/>会耗费大量时间在添加操作上。<see cref="DynamicListPanel{ItemType}"/>动态进行添加操作，当实际需要显示后续项时，才添加后续项。
     /// </summary>
     /// <typeparam name="ItemType"></typeparam>
-    class DynamicListPannel<ItemType> : ListPannel<ItemType> where ItemType : Control
+    class DynamicListPanel<ItemType> : ListPanel<ItemType> where ItemType : Control
     {
         //Properties
         /// <summary>
@@ -22,7 +22,7 @@ namespace WhAnno.Utils
         /// <summary>
         /// 动态加载数。
         /// </summary>
-        /// <remarks>当<see cref="DynamicListPannel{ItemType}"/>触发动态添加时，加载项的数目。</remarks>
+        /// <remarks>当<see cref="DynamicListPanel{ItemType}"/>触发动态添加时，加载项的数目。</remarks>
         public int DynamicNum { get; set; } = 10;
         /// <summary>
         /// 动态加载容忍项数。
@@ -58,7 +58,7 @@ namespace WhAnno.Utils
             if (IsDynamicAdd)
             {
                 DynamicItems.Add(item);
-                OnDynamicAdd(new EventArgs());
+                OnDynamicAdd(EventArgs.Empty);
             }
             else base.Add(item);
         }
@@ -72,13 +72,9 @@ namespace WhAnno.Utils
             if (IsDynamicAdd)
             {
                 DynamicItems.AddRange(items);
-                OnDynamicAdd(new EventArgs());
+                OnDynamicAdd(EventArgs.Empty);
             }
-            else
-            {
-                foreach (ItemType item in items)
-                    Add(item);
-            }
+            else base.AddRange(items);
         }
 
         /// <summary>
@@ -113,9 +109,8 @@ namespace WhAnno.Utils
         /// 确定指定项是否已添加或待添加。
         /// </summary>
         /// <param name="item">项</param>
-        /// <returns>true若<see cref="ListPannel{ItemType}.Items"/>或<see cref="DynamicItems"/>包含此项，否则为false。</returns>
+        /// <returns>true若<see cref="ListPanel{ItemType}.Items"/>或<see cref="DynamicItems"/>包含此项，否则为false。</returns>
         public bool Contains(ItemType item) => Items.Contains(item) || DynamicItems.Contains(item);
-
 
         /// <summary>
         /// 引发适当的动态添加事件。
@@ -126,7 +121,7 @@ namespace WhAnno.Utils
         //Override
         protected override void OnPaint(PaintEventArgs e)
         {
-            OnDynamicAdd(new EventArgs());
+            OnDynamicAdd(EventArgs.Empty);
             base.OnPaint(e);
         }
 
