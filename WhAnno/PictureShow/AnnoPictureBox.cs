@@ -85,7 +85,7 @@ namespace WhAnno.PictureShow
             {
                 BrushBase brush = Annotations[i].CreatBrush();
                 brush.pen = new Pen(Color.FromArgb(200, colors[i]), 2);
-                brush.DrawAnno(g, Annotations[i], cvt);
+                brush.PaintAnno(g, Annotations[i], cvt);
 
             }
             //foreach (AnnotationBase anno in Annotations)

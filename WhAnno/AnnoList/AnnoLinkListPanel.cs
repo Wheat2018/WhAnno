@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,7 +33,7 @@ namespace WhAnno.AnnoList
             Clear(true);
             foreach (AnnotationBase annotation in AnnoPicture.Annotations)
             {
-                Add(new AnnoLink(annotation));
+                Add(new AnnoLink(annotation));  
             }
         }
 
@@ -41,6 +42,35 @@ namespace WhAnno.AnnoList
             //GlobalMessage.Add(BestDisplaySize.ToString());
             base.OnLayout(levent);
         }
+
+        /// <summary>
+        /// 鼠标移过子控件的视觉效果
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="e"></param>
+        protected override void OnItemMouseEnter(AnnoLink item, EventArgs e)
+        {
+            if (item != CurrentItem)
+            {
+                item.BackColor = SystemColors.ActiveCaption;
+            }
+            base.OnItemMouseEnter(item, e);
+        }
+
+        /// <summary>
+        /// 鼠标移出子控件的视觉效果
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="e"></param>
+        protected override void OnItemMouseLeave(AnnoLink item, EventArgs e)
+        {
+            if (item != CurrentItem)
+            {
+                item.BackColor = SystemColors.Control;
+            }
+            base.OnItemMouseLeave(item, e);
+        }
+
 
         void IItemAcceptable<AnnoPictureBox>.Accept(object sender, AnnoPictureBox item)
         {

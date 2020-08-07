@@ -20,7 +20,7 @@ namespace WhAnno.Anno.Base
     /// 定义画笔类的共有特性及约束，提供一些适用于所有画笔类的静态方法。
     /// </summary>
     /// <remarks>画笔类提供使用GDI+绘制标注的方法，以及一系列对<see cref="Canva"/>类消息的处理委托。</remarks>
-    public abstract class BrushBase : PictureBox
+    public abstract class BrushBase : PictureBox, IAnnoPaintable, IEventDelegable
     {
         //Properties
         /// <summary>
@@ -61,7 +61,7 @@ namespace WhAnno.Anno.Base
         /// <param name="anno">标注实例</param>
         /// <param name="cvt">坐标变换规则</param>
         /// 
-        public abstract void DrawAnno(Graphics g, object anno, ICoorConverter cvt = null);
+        public abstract void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null);
         /// <summary>
         /// 生成当前画笔所构造的标注。
         /// </summary>
@@ -69,102 +69,17 @@ namespace WhAnno.Anno.Base
         public abstract AnnotationBase GenerateAnnotation();
 
         //Overridable
-        /// <summary>
-        /// 鼠标按键按下事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">鼠标事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseDown(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 鼠标移动事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">鼠标事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseMove(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 鼠标按键释放事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">鼠标事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseUp(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 鼠标点击事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">鼠标事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseClick(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 鼠标滚动事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">鼠标事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseWheel(object sender, MouseEventArgs e, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 鼠标进入控件区域事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseEnter(object sender, EventArgs e, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 鼠标离开控件区域事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseLeave(object sender, EventArgs e, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 鼠标悬停事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateMouseHover(object sender, EventArgs e, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 单击事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateClick(object sender, EventArgs e, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 命令键按下事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="msg">Windows消息。</param>
-        /// <param name="keyData">按键信息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual bool DelegateProcessCmdKey(object sender, ref Message msg, Keys keyData, ICoorConverter cvt = null) => true;
-        /// <summary>
-        /// 键盘按键按下事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">按键事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual void DelegateKeyPress(object sender, KeyPressEventArgs e, ICoorConverter cvt = null) {; }
-        /// <summary>
-        /// 重绘事件委托。
-        /// </summary>
-        /// <param name="sender">消息发送者。</param>
-        /// <param name="e">重绘事件消息。</param>
-        /// <param name="cvt">坐标变换规则。</param>
-        /// <returns>true表示继续执行原先的事件，false表示屏蔽原先事件。</returns>
         public virtual void DelegatePaint(object sender, PaintEventArgs e, ICoorConverter cvt = null) {; }
 
         //Methods
@@ -577,7 +492,7 @@ namespace WhAnno.Anno.Brush
             {
                 if (Status == BrushStatus.Tuning) pen.DashStyle = DashStyle.Solid;
                 else pen.DashStyle = DashStyle.Dash;
-                DrawAnno(e.Graphics, TempAnno, cvt);
+                PaintAnno(e.Graphics, TempAnno, cvt);
 
             }
 
@@ -601,7 +516,7 @@ namespace WhAnno.Anno.Brush
             Status = BrushStatus.Free;
         }
 
-        public override void DrawAnno(Graphics g, object anno, ICoorConverter cvt = null)
+        public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
         {
             if (anno.GetType() != AnnoType) return;
 
@@ -656,7 +571,7 @@ namespace WhAnno.Anno.Brush
         {
             throw new NotImplementedException();
         }
-        public override void DrawAnno(Graphics g, object anno, ICoorConverter cvt = null)
+        public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
         {
             if (anno.GetType() != AnnoType) return;
 
@@ -704,7 +619,7 @@ namespace WhAnno.Anno.Brush
         {
             throw new NotImplementedException();
         }
-        public override void DrawAnno(Graphics g, object anno, ICoorConverter cvt = null)
+        public override void PaintAnno(Graphics g, object anno, ICoorConverter cvt = null)
         {
             throw new NotImplementedException();
         }

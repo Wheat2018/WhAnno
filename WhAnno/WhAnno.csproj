@@ -70,7 +70,12 @@
     <Compile Include="Anno\Brush\Brush.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Anno\Brush\IAnnoPaintable.cs" />
     <Compile Include="Anno\Brush\ICoorConverter.cs" />
+    <Compile Include="Anno\Brush\IEventDelegable.cs" />
+    <Compile Include="Anno\Brush\IKeyEventDelegable.cs" />
+    <Compile Include="Anno\Brush\IMouseEventDelegable.cs" />
+    <Compile Include="Anno\Brush\IPaintEventDelegable.cs" />
     <Compile Include="Canva\Canva.cs">
       <SubType>Component</SubType>
     </Compile>
